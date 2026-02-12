@@ -1,4 +1,5 @@
 import SwiftUI
+import ParametricEngine
 
 struct ContentView: View {
     @StateObject private var viewModel = ModelViewModel()
@@ -9,6 +10,12 @@ struct ContentView: View {
             ViewportView(mesh: $viewModel.currentMesh)
                 .accessibilityIdentifier("viewport_view")
                 .edgesIgnoringSafeArea(.all)
+
+            // Sketch mode overlay
+            if viewModel.isInSketchMode {
+                SketchCanvasView(viewModel: viewModel)
+                    .transition(.opacity)
+            }
 
             VStack(spacing: 0) {
                 Spacer()
@@ -27,6 +34,7 @@ struct ContentView: View {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundColor(.white)
                         }
+                        .accessibilityIdentifier("error_dismiss")
                     }
                     .padding(8)
                     .background(Color.red.opacity(0.85))
@@ -34,11 +42,23 @@ struct ContentView: View {
                     .padding(.horizontal)
                 }
 
+                // Property Inspector (when feature selected)
+                if viewModel.showPropertyInspector, let feature = viewModel.selectedFeature {
+                    PropertyInspectorView(
+                        feature: feature,
+                        onUpdate: { viewModel.updateFeature($0) },
+                        onDismiss: { viewModel.deselectFeature() }
+                    )
+                    .frame(maxHeight: 200)
+                    .transition(.move(edge: .bottom))
+                }
+
                 // Feature Tree (collapsible)
-                if viewModel.showFeatureTree {
+                if viewModel.showFeatureTree && !viewModel.isInSketchMode {
                     FeatureTreeView(
-                        features: viewModel.features,
-                        selectedIndex: $viewModel.selectedFeatureIndex,
+                        features: viewModel.featureItems,
+                        selectedID: viewModel.selectedFeatureID,
+                        onSelect: { viewModel.selectFeature(at: $0) },
                         onSuppress: { viewModel.suppressFeature(at: $0) },
                         onDelete: { viewModel.deleteFeature(at: $0) },
                         onRename: { viewModel.renameFeature(at: $0, to: $1) },
@@ -48,11 +68,15 @@ struct ContentView: View {
                     .transition(.move(edge: .bottom))
                 }
 
-                // Toolbar
-                ToolbarView(viewModel: viewModel)
+                // Toolbar (hidden during sketch mode)
+                if !viewModel.isInSketchMode {
+                    ToolbarView(viewModel: viewModel)
+                }
             }
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.showFeatureTree)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.isInSketchMode)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.showPropertyInspector)
         .sheet(isPresented: $viewModel.showExportSheet) {
             ExportSheet(viewModel: viewModel)
         }
@@ -60,7 +84,7 @@ struct ContentView: View {
             Button("OK", role: .cancel) {}
         }
         .sheet(isPresented: $viewModel.showAddMenu) {
-            AddPrimitiveSheet(viewModel: viewModel)
+            AddShapeSheet(viewModel: viewModel)
         }
     }
 }

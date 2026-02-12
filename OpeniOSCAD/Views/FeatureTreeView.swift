@@ -1,8 +1,10 @@
 import SwiftUI
+import ParametricEngine
 
 struct FeatureTreeView: View {
-    let features: [FeatureItem]
-    @Binding var selectedIndex: Int?
+    let features: [FeatureDisplayItem]
+    let selectedID: FeatureID?
+    var onSelect: ((Int) -> Void)?
     var onSuppress: ((Int) -> Void)?
     var onDelete: ((Int) -> Void)?
     var onRename: ((Int, String) -> Void)?
@@ -35,8 +37,8 @@ struct FeatureTreeView: View {
                         ForEach(features) { feature in
                             FeatureRow(
                                 feature: feature,
-                                isSelected: selectedIndex == feature.index,
-                                onTap: { selectedIndex = feature.index },
+                                isSelected: selectedID == feature.id,
+                                onTap: { onSelect?(feature.index) },
                                 onSuppress: { onSuppress?(feature.index) },
                                 onDelete: { onDelete?(feature.index) },
                                 onRename: { newName in onRename?(feature.index, newName) }
@@ -54,7 +56,7 @@ struct FeatureTreeView: View {
 }
 
 struct FeatureRow: View {
-    let feature: FeatureItem
+    let feature: FeatureDisplayItem
     let isSelected: Bool
     let onTap: () -> Void
     var onSuppress: (() -> Void)?
@@ -76,26 +78,32 @@ struct FeatureRow: View {
                 .accessibilityIdentifier("feature_tree_item_\(feature.index)_eye")
                 .buttonStyle(.plain)
 
-                Image(systemName: iconForFeature(feature.name))
+                Image(systemName: iconForFeature(feature))
                     .foregroundColor(isSelected ? .blue : .secondary)
                     .frame(width: 24)
 
-                if isEditing {
-                    TextField("Name", text: $editName, onCommit: {
-                        onRename?(editName)
-                        isEditing = false
-                    })
-                    .textFieldStyle(.roundedBorder)
-                    .font(.subheadline)
-                } else {
-                    Text(feature.name)
+                VStack(alignment: .leading, spacing: 2) {
+                    if isEditing {
+                        TextField("Name", text: $editName, onCommit: {
+                            onRename?(editName)
+                            isEditing = false
+                        })
+                        .textFieldStyle(.roundedBorder)
                         .font(.subheadline)
-                        .foregroundColor(feature.isSuppressed ? .secondary : .primary)
-                        .strikethrough(feature.isSuppressed)
-                        .onTapGesture(count: 2) {
-                            editName = feature.name
-                            isEditing = true
-                        }
+                    } else {
+                        Text(feature.name)
+                            .font(.subheadline)
+                            .foregroundColor(feature.isSuppressed ? .secondary : .primary)
+                            .strikethrough(feature.isSuppressed)
+                            .onTapGesture(count: 2) {
+                                editName = feature.name
+                                isEditing = true
+                            }
+                    }
+
+                    Text(feature.detail)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()
@@ -129,18 +137,13 @@ struct FeatureRow: View {
         Divider().padding(.leading, 48)
     }
 
-    private func iconForFeature(_ name: String) -> String {
-        let lower = name.lowercased()
-        if lower.contains("cube") { return "cube" }
-        if lower.contains("cylinder") { return "cylinder" }
-        if lower.contains("sphere") { return "circle" }
-        if lower.contains("difference") { return "minus.square" }
-        if lower.contains("union") { return "plus.square" }
-        if lower.contains("intersection") { return "square.on.square" }
-        if lower.contains("translate") { return "arrow.up.and.down.and.arrow.left.and.right" }
-        if lower.contains("rotate") { return "arrow.triangle.2.circlepath" }
-        if lower.contains("scale") { return "arrow.up.left.and.arrow.down.right" }
-        return "gearshape"
+    private func iconForFeature(_ f: FeatureDisplayItem) -> String {
+        switch f.kind {
+        case .sketch: return "pencil.and.outline"
+        case .extrude: return "arrow.up.to.line"
+        case .boolean: return "square.on.square"
+        case .transform: return "arrow.up.and.down.and.arrow.left.and.right"
+        }
     }
 }
 
