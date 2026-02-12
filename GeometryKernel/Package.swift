@@ -9,5 +9,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "GeometryKernel"),
+        .testTarget(name: "GeometryKernelTests", dependencies: ["GeometryKernel"]),
     ]
 )

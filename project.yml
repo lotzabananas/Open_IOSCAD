@@ -11,6 +11,8 @@ packages:
     path: GeometryKernel
   Renderer:
     path: Renderer
+  ParametricEngine:
+    path: ParametricEngine
 
 targets:
   OpeniOSCAD:
@@ -21,6 +23,7 @@ targets:
     dependencies:
       - package: GeometryKernel
       - package: Renderer
+      - package: ParametricEngine
     settings:
       base:
         GENERATE_INFOPLIST_FILE: true
@@ -35,7 +38,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: true
         INFOPLIST_KEY_UIFileSharingEnabled: true
-        INFOPLIST_KEY_CFBundleDocumentTypes: "({CFBundleTypeName = 'STEP File'; LSHandlerRank = Owner; LSItemContentTypes = ('public.step', 'public.text');})"
+        INFOPLIST_KEY_CFBundleDocumentTypes: "({CFBundleTypeName = 'STEP File'; LSHandlerRank = Owner; LSItemContentTypes = ('com.openioscad.step', 'public.step', 'public.text');})"
 
   OpeniOSCADTests:
     type: bundle.unit-test
