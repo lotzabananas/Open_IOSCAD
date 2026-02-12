@@ -1,281 +1,109 @@
 import SwiftUI
 import Combine
-import SCADEngine
 import GeometryKernel
 import Renderer
 
 @MainActor
 final class ModelViewModel: ObservableObject {
-    // Script state
-    @Published var scriptText: String = "" {
-        didSet {
-            if scriptText != oldValue {
-                scheduleRebuild()
-                scheduleUndoSnapshot()
-            }
-        }
-    }
-
     // Geometry state
     @Published var currentMesh: TriangleMesh = TriangleMesh()
 
     // UI state
-    @Published var showScriptEditor: Bool = false
-    @Published var showCustomizer: Bool = false
     @Published var showFeatureTree: Bool = true
     @Published var showAddMenu: Bool = false
     @Published var showExportSheet: Bool = false
     @Published var showExportSuccess: Bool = false
     @Published var lastError: String?
-    @Published var selectedFeatureIndex: Int? = nil {
-        didSet {
-            // Jump-to-feature: update jumpToLine when a feature is selected
-            if let idx = selectedFeatureIndex, idx < features.count {
-                jumpToLine = features[idx].lineNumber
-            }
-        }
-    }
+    @Published var selectedFeatureIndex: Int?
     @Published var features: [FeatureItem] = []
-    @Published var customizerParams: [CustomizerParam] = []
-    @Published var jumpToLine: Int? = nil
 
     // Undo/Redo
     @Published var canUndo: Bool = false
     @Published var canRedo: Bool = false
-    private var undoStack: [String] = []
-    private var redoStack: [String] = []
-    private let maxUndoStates = 100
-    private var isApplyingUndoRedo = false
-    private var undoDebounceTask: Task<Void, Never>?
-    private var pendingUndoSnapshot: String?
-    private let systemUndoManager = UndoManager()
 
     // Engine
-    private let evaluator = Evaluator()
     private let kernel = GeometryKernel()
-    private let customizerExtractor = CustomizerExtractor()
-
-    private var rebuildTask: Task<Void, Never>?
 
     init() {}
 
-    // MARK: - Script Rebuild Pipeline
-
-    func rebuildFromScript() {
-        rebuildTask?.cancel()
-        rebuildTask = Task { [weak self] in
-            guard let self = self else { return }
-            await self.performRebuild()
-        }
-    }
-
-    private func scheduleRebuild() {
-        rebuildTask?.cancel()
-        rebuildTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 200_000_000) // 200ms debounce
-            guard !Task.isCancelled else { return }
-            guard let self = self else { return }
-            await self.performRebuild()
-        }
-    }
-
-    private func performRebuild() async {
-        let source = scriptText
-        guard !source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            currentMesh = TriangleMesh()
-            features = []
-            customizerParams = []
-            lastError = nil
-            return
-        }
-
-        do {
-            // Lex
-            let lexer = Lexer(source: source)
-            let tokens = try lexer.tokenize()
-
-            // Parse
-            var parser = Parser(tokens: tokens)
-            let ast = try parser.parse()
-
-            // Extract customizer params
-            customizerParams = customizerExtractor.extract(from: source)
-
-            // Extract features (from @feature annotations + auto-detected primitives)
-            features = extractFeatures(from: source)
-
-            // Evaluate
-            let result = evaluator.evaluate(program: ast)
-
-            if !result.errors.isEmpty {
-                lastError = result.errors.map(\.description).joined(separator: "\n")
-            } else {
-                lastError = nil
-            }
-
-            // Build mesh
-            let mesh = kernel.evaluate(result.geometry)
-            currentMesh = mesh
-
-        } catch {
-            lastError = error.localizedDescription
-        }
-    }
-
-    // MARK: - GUI Actions (ScriptBridge — write to script)
+    // MARK: - Feature Operations (stubs — ParametricEngine will implement)
 
     func addPrimitive(_ type: String) {
-        guard let primType = ScriptBridge.PrimitiveType(rawValue: type.lowercased()) else {
-            // Fallback for unknown types
-            pushUndoImmediate()
-            scriptText += "\(type.lowercased())();\n"
-            showAddMenu = false
-            return
-        }
-
-        pushUndoImmediate()
-        scriptText = ScriptBridge.insertPrimitive(
-            primType,
-            in: scriptText,
-            afterFeatureIndex: selectedFeatureIndex
+        let name = nextFeatureName(for: type)
+        let feature = FeatureItem(
+            name: name,
+            type: type.lowercased(),
+            index: features.count,
+            isSuppressed: false
         )
+        features.append(feature)
         showAddMenu = false
+        // TODO: ParametricEngine evaluates feature → GeometryKernel → mesh
     }
 
     func addBooleanOp(_ op: String) {
-        pushUndoImmediate()
-
-        let name = ScriptBridge.nextFeatureName(for: op.capitalized, in: scriptText)
-        let block = "// @feature \"\(name)\"\n\(op)() {\n    \n}\n"
-
-        scriptText = ScriptBridge.insertBlock(
-            block,
-            in: scriptText,
-            afterFeatureIndex: selectedFeatureIndex
+        let name = nextFeatureName(for: op.capitalized)
+        let feature = FeatureItem(
+            name: name,
+            type: op.lowercased(),
+            index: features.count,
+            isSuppressed: false
         )
+        features.append(feature)
+        // TODO: ParametricEngine evaluates feature → GeometryKernel → mesh
     }
-
-    func updateParameter(name: String, value: Value) {
-        pushUndoImmediate()
-        scriptText = customizerExtractor.updateParameter(in: scriptText, name: name, newValue: value)
-    }
-
-    /// Update parameter during slider drag — skips undo push (undo is handled on drag end).
-    func updateParameterDuringDrag(name: String, value: Value) {
-        isApplyingUndoRedo = true // Prevent scheduleUndoSnapshot from firing
-        scriptText = customizerExtractor.updateParameter(in: scriptText, name: name, newValue: value)
-        isApplyingUndoRedo = false
-    }
-
-    /// Called when slider drag starts — snapshot for undo.
-    func beginParameterDrag() {
-        pushUndoImmediate()
-    }
-
-    /// Called when slider drag ends — no action needed, undo was pushed on start.
-    func endParameterDrag() {
-        // Undo state was already pushed in beginParameterDrag
-    }
-
-    // MARK: - Feature Tree Operations
 
     func suppressFeature(at index: Int) {
-        pushUndoImmediate()
-        scriptText = ScriptBridge.suppressFeature(at: index, in: scriptText)
+        guard index < features.count else { return }
+        features[index] = FeatureItem(
+            name: features[index].name,
+            type: features[index].type,
+            index: features[index].index,
+            isSuppressed: !features[index].isSuppressed
+        )
+        reindex()
+        // TODO: ParametricEngine re-evaluates from modified point
     }
 
     func deleteFeature(at index: Int) {
-        pushUndoImmediate()
+        guard index < features.count else { return }
         if selectedFeatureIndex == index {
             selectedFeatureIndex = nil
         }
-        scriptText = ScriptBridge.deleteFeature(at: index, in: scriptText)
+        features.remove(at: index)
+        reindex()
+        // TODO: ParametricEngine re-evaluates from modified point
     }
 
     func renameFeature(at index: Int, to newName: String) {
-        pushUndoImmediate()
-        scriptText = ScriptBridge.renameFeature(at: index, to: newName, in: scriptText)
+        guard index < features.count else { return }
+        features[index] = FeatureItem(
+            name: newName,
+            type: features[index].type,
+            index: features[index].index,
+            isSuppressed: features[index].isSuppressed
+        )
     }
 
     func moveFeature(from source: Int, to destination: Int) {
-        pushUndoImmediate()
-        scriptText = ScriptBridge.moveFeature(from: source, to: destination, in: scriptText)
+        guard source != destination,
+              source < features.count,
+              destination <= features.count else { return }
+        let feature = features.remove(at: source)
+        let insertAt = destination > source ? destination - 1 : destination
+        features.insert(feature, at: min(insertAt, features.count))
+        reindex()
+        // TODO: ParametricEngine re-evaluates from modified point
     }
 
-    // MARK: - Undo/Redo
-
-    /// Push an immediate undo snapshot (for discrete GUI actions).
-    func pushUndoImmediate() {
-        guard !isApplyingUndoRedo else { return }
-        undoDebounceTask?.cancel()
-        pendingUndoSnapshot = nil
-
-        undoStack.append(scriptText)
-        if undoStack.count > maxUndoStates {
-            undoStack.removeFirst()
-        }
-        redoStack.removeAll()
-        canUndo = true
-        canRedo = false
-    }
-
-    /// Schedule a debounced undo snapshot (for typing in editor).
-    private func scheduleUndoSnapshot() {
-        guard !isApplyingUndoRedo else { return }
-
-        if pendingUndoSnapshot == nil {
-            pendingUndoSnapshot = scriptText
-        }
-
-        undoDebounceTask?.cancel()
-        undoDebounceTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1s debounce for typing
-            guard !Task.isCancelled else { return }
-            guard let self = self else { return }
-            self.flushUndoSnapshot()
-        }
-    }
-
-    private func flushUndoSnapshot() {
-        guard let snapshot = pendingUndoSnapshot else { return }
-        // Only push if different from the last undo state
-        if undoStack.last != snapshot {
-            undoStack.append(snapshot)
-            if undoStack.count > maxUndoStates {
-                undoStack.removeFirst()
-            }
-        }
-        pendingUndoSnapshot = nil
-        redoStack.removeAll()
-        canUndo = !undoStack.isEmpty
-        canRedo = false
-    }
+    // MARK: - Undo/Redo (stubs — will operate on Feature list snapshots)
 
     func undo() {
-        // Flush any pending typing snapshot first
-        undoDebounceTask?.cancel()
-        if let pending = pendingUndoSnapshot, undoStack.last != pending {
-            undoStack.append(pending)
-            pendingUndoSnapshot = nil
-        }
-
-        guard let previous = undoStack.popLast() else { return }
-        isApplyingUndoRedo = true
-        redoStack.append(scriptText)
-        scriptText = previous
-        isApplyingUndoRedo = false
-        canUndo = !undoStack.isEmpty
-        canRedo = true
+        // TODO: Restore previous feature list snapshot
     }
 
     func redo() {
-        guard let next = redoStack.popLast() else { return }
-        isApplyingUndoRedo = true
-        undoStack.append(scriptText)
-        scriptText = next
-        isApplyingUndoRedo = false
-        canUndo = true
-        canRedo = !redoStack.isEmpty
+        // TODO: Restore next feature list snapshot
     }
 
     // MARK: - Export
@@ -290,57 +118,25 @@ final class ModelViewModel: ObservableObject {
         return ThreeMFExporter.export(currentMesh)
     }
 
-    // MARK: - Features
+    // MARK: - Private
 
-    private func extractFeatures(from source: String) -> [FeatureItem] {
-        // Prefer @feature annotations from ScriptBridge
-        let annotatedBlocks = ScriptBridge.featureBlocks(in: source)
-        if !annotatedBlocks.isEmpty {
-            return annotatedBlocks.enumerated().map { (i, block) in
-                FeatureItem(
-                    name: block.name,
-                    lineNumber: block.startLine,
-                    index: i,
-                    endLine: block.endLine,
-                    isSuppressed: block.isSuppressed
-                )
-            }
+    private func nextFeatureName(for type: String) -> String {
+        let base = type.prefix(1).uppercased() + type.dropFirst().lowercased()
+        let existing = features.filter { $0.name.hasPrefix(base) }.count
+        return "\(base) \(existing + 1)"
+    }
+
+    private func reindex() {
+        features = features.enumerated().map { (i, f) in
+            FeatureItem(name: f.name, type: f.type, index: i, isSuppressed: f.isSuppressed)
         }
-
-        // Fallback: auto-detect top-level primitive calls
-        var items: [FeatureItem] = []
-        let lines = source.components(separatedBy: "\n")
-        var featureIndex = 0
-
-        let primitives = ["cube", "cylinder", "sphere", "polyhedron", "difference", "union", "intersection",
-                        "translate", "rotate", "scale", "linear_extrude", "rotate_extrude"]
-
-        for (i, line) in lines.enumerated() {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            for prim in primitives {
-                if trimmed.hasPrefix("\(prim)(") || trimmed.hasPrefix("\(prim) (") {
-                    items.append(FeatureItem(
-                        name: prim,
-                        lineNumber: i + 1,
-                        index: featureIndex,
-                        endLine: i + 1,
-                        isSuppressed: false
-                    ))
-                    featureIndex += 1
-                    break
-                }
-            }
-        }
-
-        return items
     }
 }
 
 struct FeatureItem: Identifiable {
     let name: String
-    let lineNumber: Int
+    let type: String
     let index: Int
-    let endLine: Int
     let isSuppressed: Bool
     var id: Int { index }
 }

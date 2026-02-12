@@ -6,6 +6,6 @@ appId: com.openioscad.app
 - assertVisible:
     id: "toolbar_add_button"
 - assertVisible:
-    id: "toolbar_customizer_button"
+    id: "toolbar_features_button"
 - assertVisible:
-    id: "toolbar_script_button"
+    id: "menu_export"

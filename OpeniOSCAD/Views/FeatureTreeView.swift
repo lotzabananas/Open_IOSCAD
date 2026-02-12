@@ -100,7 +100,7 @@ struct FeatureRow: View {
 
                 Spacer()
 
-                Text("L\(feature.lineNumber)")
+                Text("\(feature.index + 1)")
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }

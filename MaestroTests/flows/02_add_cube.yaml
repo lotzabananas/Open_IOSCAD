@@ -9,7 +9,3 @@ appId: com.openioscad.app
 - tapOn: "Cube"
 - assertVisible:
     id: "feature_tree_item_0"
-# Verify script was written
-- tapOn:
-    id: "toolbar_script_button"
-- assertVisible: "cube("

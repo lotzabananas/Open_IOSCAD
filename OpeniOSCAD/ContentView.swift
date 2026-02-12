@@ -48,38 +48,10 @@ struct ContentView: View {
                     .transition(.move(edge: .bottom))
                 }
 
-                // Script Editor (toggled)
-                if viewModel.showScriptEditor {
-                    ScriptEditorView(
-                        text: $viewModel.scriptText,
-                        onCommit: { viewModel.rebuildFromScript() },
-                        errorMessage: viewModel.lastError,
-                        jumpToLine: viewModel.jumpToLine
-                    )
-                    .frame(height: 250)
-                    .transition(.move(edge: .bottom))
-                }
-
-                // Customizer Panel (toggled)
-                if viewModel.showCustomizer {
-                    ParameterPanelView(
-                        parameters: viewModel.customizerParams,
-                        onValueChanged: { name, value in
-                            viewModel.updateParameterDuringDrag(name: name, value: value)
-                        },
-                        onDragStarted: { viewModel.beginParameterDrag() },
-                        onDragEnded: { viewModel.endParameterDrag() }
-                    )
-                    .frame(maxHeight: 300)
-                    .transition(.move(edge: .bottom))
-                }
-
                 // Toolbar
                 ToolbarView(viewModel: viewModel)
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: viewModel.showScriptEditor)
-        .animation(.easeInOut(duration: 0.25), value: viewModel.showCustomizer)
         .animation(.easeInOut(duration: 0.25), value: viewModel.showFeatureTree)
         .sheet(isPresented: $viewModel.showExportSheet) {
             ExportSheet(viewModel: viewModel)

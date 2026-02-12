@@ -17,10 +17,6 @@ struct ExportSheet: View {
                     Label("3MF", systemImage: "cube")
                 }
                 .accessibilityIdentifier("menu_export_3mf")
-
-                Button(action: exportSCAD) {
-                    Label("OpenSCAD (.scad)", systemImage: "doc.text")
-                }
             }
             .navigationTitle("Export")
             .navigationBarTitleDisplayMode(.inline)
@@ -40,11 +36,6 @@ struct ExportSheet: View {
     private func export3MF() {
         guard let data = viewModel.export3MF() else { return }
         shareData(data, filename: "model.3mf", contentType: .data)
-    }
-
-    private func exportSCAD() {
-        let data = viewModel.scriptText.data(using: .utf8) ?? Data()
-        shareData(data, filename: "model.scad", contentType: .plainText)
     }
 
     private func shareData(_ data: Data, filename: String, contentType: UTType) {

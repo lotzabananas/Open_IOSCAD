@@ -6,6 +6,3 @@ appId: com.openioscad.app
 - tapOn: "Cylinder"
 - assertVisible:
     id: "feature_tree_item_0"
-- tapOn:
-    id: "toolbar_script_button"
-- assertVisible: "cylinder("
