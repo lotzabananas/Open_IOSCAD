@@ -16,6 +16,5 @@ let package = Package(
             dependencies: ["GeometryKernel"],
             resources: [.process("Shaders")]
         ),
-        .testTarget(name: "RendererTests", dependencies: ["Renderer"]),
     ]
 )

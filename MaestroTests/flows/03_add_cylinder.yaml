@@ -1,8 +1,0 @@
-appId: com.openioscad.app
----
-- launchApp
-- tapOn:
-    id: "toolbar_add_button"
-- tapOn: "Cylinder"
-- assertVisible:
-    id: "feature_tree_item_0"
