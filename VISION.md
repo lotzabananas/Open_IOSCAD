@@ -1,10 +1,8 @@
-# OpeniOSCAD — Vision & Architecture
+# OpeniOSCAD — Vision
 
 ## What This Is
 
-OpeniOSCAD is a free, open-source (MIT), native iOS parametric CAD app. Users build 3D models by adding features — sketches, extrusions, fillets, booleans — through direct touch interaction. The app stores models as a typed feature history, renders them with Metal, and exports to industry formats including OpenSCAD scripts, STL, 3MF, and STEP.
-
-This is not a script editor that happens to render 3D. This is a parametric CAD tool that happens to be able to export scripts.
+OpeniOSCAD is a free, open-source (MIT), native iOS parametric CAD app. Users build 3D models through direct touch interaction with a history-based feature tree. The native file format is STEP — the industry standard for exact geometry — enriched with parametric history in comments so every file is universally readable by any CAD tool while remaining fully editable in our app.
 
 ## Decided — Do Not Revisit
 
@@ -12,477 +10,142 @@ This is not a script editor that happens to render 3D. This is a parametric CAD 
 - **License:** MIT, public GitHub repo
 - **Price:** Free. No IAP, no subscription, no paid tiers.
 - **Platform:** iPhone primary. iPad fast-follow (same codebase, adaptive layout).
-- **Language:** Swift + Metal for all app logic. C++ only for Manifold (CSG booleans) via a thin C bridge.
-- **Source of truth:** The feature tree — a typed, ordered list of Feature objects. Not a script. Not a mesh.
+- **Source of truth:** The feature tree — a typed, ordered list of Feature objects in memory. On disk, this persists as a STEP file with history embedded in comments.
 - **Design philosophy:** Accessible AND serious. Progressive disclosure. Direct manipulation. Respect user intelligence.
 
-## Core Architecture Principle
+## Core Principles
 
-**The feature tree is the single source of truth. Always.**
+### 1. The Feature Tree Is the Source of Truth
+
+Every modeling operation is a Feature. Features are evaluated in order, top to bottom. The feature list is the single authoritative representation of the model.
+
+- Undo = revert the feature list
+- Save = write STEP geometry + feature history in comments
+- Reorder = move an entry in the list, re-evaluate from that point
+- Suppress = skip a feature during evaluation
+
+Scripts, meshes, and rendered frames are all derived from the feature list. Never the reverse.
+
+### 2. STEP-Native File Format
+
+The native file format is `.step` (ISO 10303). STEP files support `/* */` comments per the spec. We embed the parametric feature history as structured JSON inside a STEP comment block:
 
 ```
-User taps "Add Cube"
-       |
-       v
-App appends Feature.primitive(.cube, params) to the feature list
-       |
-       v
-ParametricEngine evaluates the feature list top-to-bottom
-       |
-       v
-GeometryKernel produces geometry (BREP solid → tessellated mesh)
-       |
-       v
-Metal renderer displays the mesh. Feature tree UI updates.
+ISO-10303-21;
+HEADER; ... ENDSEC;
+DATA;
+/* @openioscad { "features": [...parametric history...] } */
+#1=CARTESIAN_POINT('',(0.,0.,0.));
+...standard STEP geometry entities...
+ENDSEC;
+END-ISO-10303-21;
 ```
 
-The model is NEVER stored independently of the feature list. Undo = revert the feature list. Save = serialize the feature list. Export = generate script/mesh from the evaluated model. Feature reorder = move an entry in the list. Suppress = mark a feature as suppressed.
+**Why this matters:**
+- **Universal compatibility.** Every CAD tool in the world reads STEP. FreeCAD, Fusion 360, SolidWorks, PrusaSlicer — they all open our files and get exact geometry. They ignore our comments.
+- **Our app gets full editing.** When we open the file, we read the comment block, reconstruct the feature tree, and the user has full parametric editing capability.
+- **Someone else's STEP file works too.** Open any of the millions of STEP files online. No history comment? Import the geometry as a solid body. The user can add new features on top.
+- **One format, not two.** Saving and exporting to STEP are the same operation. No separate "native format" to maintain alongside export formats.
 
-Scripts (OpenSCAD, CadQuery) are **export formats**, not the native representation. The app can also **import** .scad files by parsing them into features, but internally everything is the typed feature tree.
+### 3. AI-First Design
 
-## System Architecture
+The app is designed from the ground up for AI integration. The feature tree is a simple, structured instruction set that describes modeling intent:
+
+```
+1. Create a box: 40 × 25 × 3
+2. Sketch a circle (r=2.5) on the top face
+3. Cut through
+4. Fillet the hole edges, radius 2
+```
+
+This is the interface for AI — not raw STEP text, not script code. An AI model describes what to build as feature instructions, the app creates the Feature objects, evaluates them to geometry, and saves as STEP. The AI never needs to understand STEP syntax or any CAD scripting language. It just describes intent.
+
+This also works in reverse: the user can select geometry, ask "make this stronger" or "add mounting holes," and the AI can inspect the feature tree, understand the design history, and append/modify features.
+
+### 4. Direct Manipulation, Not Text Manipulation
+
+This is a touch-first CAD tool, not a script editor:
+
+- **Tap a face** → contextual options: sketch, extrude, shell
+- **Tap an edge** → contextual options: fillet, chamfer
+- **Drag a dimension** → live parameter update and re-render
+- **Reorder features** in the tree → model re-evaluates
+
+The UI is not constrained by what any scripting language can express. If parametric CAD needs it, we build it.
+
+## Architecture
 
 Four Swift packages + one app target:
 
-```
-OpeniOSCAD (iOS App — SwiftUI)
-  ├── Views: Viewport, FeatureTree, PropertyPanel, SketchCanvas, Toolbar
-  ├── ViewModels: ModelViewModel, SketchViewModel
-  └── Services: UndoManager, FileService, ExportService
+- **ParametricEngine:** Feature types, feature evaluator, constraint solver. Pure Swift. No UI dependencies. The brain of the app.
+- **GeometryKernel:** Geometry operations — primitives, booleans, extrude/revolve, fillet/chamfer, tessellation, STEP read/write. Swift + C++ (ManifoldBridge only for CSG booleans).
+- **Renderer:** Metal render pipeline, camera, face/edge selection and highlighting. Swift + Metal. Knows only triangle meshes and selection state.
+- **SCADParser:** OpenSCAD lexer/parser/evaluator. Import-only — converts .scad files to Feature objects. Not on the critical modeling path.
+- **OpeniOSCAD (app):** SwiftUI views, view models, undo/redo, file handling. Orchestrates all packages.
 
-ParametricEngine (Swift Package — model evaluation)
-  ├── Feature types (Sketch, Extrude, Revolve, Fillet, Boolean, Pattern, etc.)
-  ├── FeatureEvaluator (walks the feature list, produces geometry)
-  ├── ConstraintSolver (2D sketch constraints)
-  └── ScriptExporter (Feature[] → .scad / .py text)
-
-GeometryKernel (Swift Package + Manifold C++ bridge)
-  ├── BREP types (Vertex, Edge, Face, Shell, Solid)
-  ├── Primitives (box, cylinder, sphere → BREP solids)
-  ├── Operations (extrude, revolve, fillet, chamfer, shell, booleans)
-  ├── Tessellator (BREP solid → TriangleMesh for display)
-  ├── ManifoldBridge (C bridge to Manifold for CSG booleans)
-  └── Export (STL, 3MF, STEP writers)
-
-Renderer (Swift Package + Metal)
-  ├── Metal shaders, render pipeline
-  ├── Camera (orbit, pan, zoom)
-  └── Selection (face/edge highlight, pick ray)
-
-SCADParser (Swift Package — OpenSCAD import only)
-  ├── Lexer, Parser, Evaluator
-  └── FeatureConverter (AST → Feature[] for import)
-```
-
-### Package Boundaries
-
-- **ParametricEngine** defines the `Feature` types and evaluates them. It calls GeometryKernel for geometry operations. It has no UI dependencies.
-- **GeometryKernel** knows nothing about features. It operates on geometry: create solid, boolean two solids, fillet an edge, tessellate for display, export to file format.
-- **Renderer** knows only `TriangleMesh` and selection state. Zero dependency on ParametricEngine or feature concepts.
-- **SCADParser** is an import-only module. It parses .scad text into an AST, evaluates it, and converts the result to `Feature[]` objects that the rest of the app understands. It is not on the critical path for normal app usage.
-- **App layer** orchestrates everything: user interaction → modify Feature[] → evaluate → render.
-
-### Data Flow
-
-```
-Feature[] (source of truth)
-    │
-    ├──→ ParametricEngine.evaluate(features)
-    │         │
-    │         ├──→ GeometryKernel: create primitives, extrude sketches,
-    │         │    apply booleans (via Manifold), fillet edges
-    │         │         │
-    │         │         └──→ BREPSolid (exact geometry)
-    │         │                  │
-    │         │                  ├──→ Tessellator → TriangleMesh → Renderer (display)
-    │         │                  ├──→ STLExporter (mesh export)
-    │         │                  ├──→ STEPExporter (BREP export)
-    │         │                  └──→ ThreeMFExporter (mesh export)
-    │         │
-    │         └──→ ScriptExporter → .scad text (OpenSCAD export)
-    │                             → .py text (CadQuery export)
-    │
-    ├──→ FeatureTreeView (UI list of features)
-    │
-    ├──→ PropertyPanel (editable parameters for selected feature)
-    │
-    └──→ FileService.save() → .ioscad file (JSON serialization)
-```
-
-## The Feature System
-
-Every modeling operation is a Feature. Features are evaluated in order, top to bottom. Each feature takes the current model state and produces updated model state.
-
-### Feature Types
-
-```swift
-enum Feature: Identifiable, Codable {
-    // Primitives — create a new solid body
-    case primitive(id, name, PrimitiveParams)       // box, cylinder, sphere, cone
-
-    // Sketch — 2D profile on a plane
-    case sketch(id, name, plane, [SketchEntity], [Constraint])
-
-    // Solid operations — create 3D from 2D
-    case extrude(id, name, sketchRef, depth, direction)
-    case cut(id, name, sketchRef, depth, direction)  // extrude-subtract
-    case revolve(id, name, sketchRef, axis, angle)
-
-    // Modify operations — alter existing solid
-    case fillet(id, name, edgeRefs, radius)
-    case chamfer(id, name, edgeRefs, distance)
-    case shell(id, name, faceRefs, thickness)
-
-    // Boolean operations — combine solids
-    case booleanUnion(id, name, bodyRefs)
-    case booleanSubtract(id, name, targetRef, toolRefs)
-    case booleanIntersect(id, name, bodyRefs)
-
-    // Transform operations
-    case transform(id, name, bodyRef, TransformParams)  // translate, rotate, scale, mirror
-
-    // Patterns
-    case linearPattern(id, name, featureRef, direction, count, spacing)
-    case circularPattern(id, name, featureRef, axis, count, angle)
-
-    // Import
-    case importMesh(id, name, filePath, format)     // STL, 3MF, OBJ
-
-    // Metadata
-    var id: UUID
-    var name: String
-    var isSuppressed: Bool
-    var parameters: [String: ParameterValue]        // user-editable params
-}
-```
-
-### Feature Evaluation
-
-The evaluator walks the feature list in order, maintaining a `ModelState` — the set of solid bodies that exist at each point in the history:
-
-```
-Feature 1: primitive(box, 20×20×10)        → ModelState: [Body A]
-Feature 2: sketch(top face of A, circle)   → ModelState: [Body A], sketch pending
-Feature 3: cut(sketch, depth: 5)           → ModelState: [Body A with hole]
-Feature 4: fillet(hole edges, radius: 2)   → ModelState: [Body A with filleted hole]
-```
-
-Editing Feature 1's dimensions re-evaluates everything from Feature 1 forward. This is history-based parametric modeling — the same paradigm as SolidWorks, Fusion 360, and Onshape.
-
-### Parameters and Editing
-
-Every feature exposes typed parameters that the user can edit through the PropertyPanel:
-
-- Select a feature in the tree → PropertyPanel shows its parameters
-- Change a value → feature is updated → re-evaluate from that point forward → re-render
-- Parameters can reference other features' geometry (e.g., "extrude from this face", "fillet these edges")
-
-## Geometry Strategy
-
-### Phase 1: Hybrid Mesh + Topology
-
-For the initial release, geometry uses triangle meshes internally but maintains enough topological information (which triangles belong to which logical face/edge) to support selection and basic feature references:
-
-- **Primitives** generate meshes with face/edge group annotations
-- **Booleans** use Manifold (C++ library via bridge) — robust, fast, battle-tested
-- **Extrude/Revolve** generate meshes from 2D profiles with proper face groups
-- **Fillet/Chamfer** operate on annotated edge groups (mesh-based approximation)
-- **Selection** uses face/edge group IDs, not raw triangles
-
-This gets a working app shipped without requiring a full BREP kernel.
-
-### Phase 2+: True BREP
-
-When the foundation is solid, evolve toward exact BREP representation:
-
-- Primitives and extrusions produce exact analytical surfaces (planes, cylinders, spheres, toroidal blends)
-- Booleans produce exact BREP (potentially wrapping OpenCASCADE or building minimal BREP ops)
-- Tessellation happens only at the display boundary
-- STEP export produces exact geometry, not approximated meshes
-- Fillets produce proper rolling-ball blends
-
-The key: **the Feature types and app architecture don't change** between Phase 1 and Phase 2. Only the GeometryKernel internals change. The feature tree, UI, undo system, file format, and export pipeline all stay the same.
+**Package boundaries are strict:** ParametricEngine does not import Renderer. GeometryKernel knows nothing about Features. Renderer knows nothing about either. Data flows one direction: Features → geometry → mesh → pixels.
 
 ## File Format
 
-### Native: `.ioscad` (JSON)
+**Native:** `.step` — STEP AP214 geometry with `@openioscad` comment block containing the feature history as JSON. Human-readable (as much as STEP ever is), universally compatible, no proprietary lock-in.
 
-The native file format is a JSON serialization of the feature list plus metadata:
+**Import:** `.step` (native), `.scad` (via SCADParser → Feature conversion), `.stl` / `.3mf` (as mesh bodies)
 
-```json
-{
-  "version": 1,
-  "name": "Bracket",
-  "units": "mm",
-  "features": [
-    {
-      "type": "primitive",
-      "id": "...",
-      "name": "Base Plate",
-      "primitive": "box",
-      "params": { "width": 40, "height": 25, "depth": 3 },
-      "suppressed": false
-    },
-    {
-      "type": "sketch",
-      "id": "...",
-      "name": "Hole Profile",
-      "plane": { "faceRef": "...", "featureId": "..." },
-      "entities": [ { "type": "circle", "center": [20, 12.5], "radius": 2.5 } ],
-      "constraints": [ { "type": "concentric", "entity": 0, "faceRef": "..." } ]
-    },
-    {
-      "type": "cut",
-      "id": "...",
-      "name": "Mounting Hole",
-      "sketchRef": "...",
-      "depth": 5,
-      "direction": "through"
-    }
-  ]
-}
-```
+**Export:** `.step` (same as save), `.stl` / `.3mf` (tessellated mesh), `.scad` (OpenSCAD script — lossy, best-effort), `.py` (CadQuery script)
 
-This is human-readable, diffable in git, and trivially serializable with Swift's Codable.
+Script export (OpenSCAD, CadQuery) is a convenience feature for interoperability. Features that the target language can't express (e.g., fillets in OpenSCAD) export as the evaluated geometry result (polyhedron), not as operations.
 
-### Import
+## UI/UX
 
-- **.scad** — Parse with SCADParser, convert to Feature[] (best-effort: primitives + booleans + transforms map cleanly; complex scripts may produce a single "imported group" feature)
-- **.stl / .3mf / .obj** — Import as mesh body (Feature.importMesh)
-- **.step** — Future: parse BREP geometry into features
+### Layout
 
-### Export
-
-- **.scad** — ScriptExporter generates valid OpenSCAD from the feature list. Primitives, booleans, and transforms map directly. Sketches export as CSG approximations with comments preserving the original sketch data. Any .scad exported by this app should render identically in desktop OpenSCAD.
-- **.py (CadQuery)** — For users who want a more capable script format. CadQuery can express sketches, fillets, chamfers, assemblies — much closer to what our feature tree actually represents.
-- **.stl / .3mf** — Tessellate and write mesh.
-- **.step** — Export exact BREP geometry (Phase 2+, mesh approximation in Phase 1).
-- **.svg / .dxf** — 2D projection export (future).
-
-## UI/UX Design
-
-### iPhone Layout
-
-```
-+---------------------------+
-|  +---------------------+  |
-|  |   3D Viewport       |  |  ← Primary, always visible
-|  |   (Metal render)    |  |     Pinch/pan/orbit
-|  |                     |  |     Tap to select face/edge/body
-|  +---------------------+  |
-|  +---------------------+  |
-|  |  Feature Tree       |  |  ← Collapsible bottom panel
-|  |  (ordered history)  |  |     Tap: select. Drag: reorder.
-|  +---------------------+  |
-|  | [+]  [sketch]  [≡]  |  |  ← Primary actions
-|  +---------------------+  |
-+---------------------------+
-```
-
-### Modal States
-
-1. **Model Mode** — 3D viewport + feature tree + toolbar. Primary interaction mode.
-2. **Sketch Mode** — 2D orthographic canvas on a selected plane/face. Sketch tools (line, arc, circle, rect, dimension). Constraint visualization. Exit sketch → return to model mode.
-3. **Property Mode** — PropertyPanel slides up showing parameters for the selected feature. Edit values, see live preview.
-4. **Export Mode** — Export sheet with format options and settings.
-
-### Direct Manipulation
-
-The whole point of moving away from script-authoritative is to enable real direct manipulation:
-
-- **Tap a face** → select it → options appear: "Sketch on Face", "Extrude", "Shell"
-- **Tap an edge** → select it → options appear: "Fillet", "Chamfer"
-- **Tap a body** → select it → options appear: "Move", "Boolean", "Pattern"
-- **Drag a dimension** → live update the parameter → re-evaluate → re-render in real time
-- **Double-tap a feature** → jump into editing its parameters
+The 3D viewport is always primary. The feature tree is a collapsible bottom panel. A toolbar provides the core actions. Everything else is contextual — it appears when the user's selection makes it relevant.
 
 ### Progressive Disclosure
 
-**Level 1 (immediate):** [+] Add → (Box, Cylinder, Sphere). Sketch button. Feature tree.
-**Level 2 (explore):** Long-press [+] for full primitive library. Face/edge selection reveals contextual operations. Swipe features for suppress/delete.
-**Level 3 (power):** Patterns, assemblies, multi-body operations, export settings, direct script export, import from .scad.
+- **Level 1:** Add primitives. See the feature tree. Tap to select. Undo/redo.
+- **Level 2:** Face/edge selection reveals contextual operations. Feature reorder, suppress, delete. Property editing.
+- **Level 3:** Sketch mode with constraints. Patterns. Multi-body. Script export. AI assist.
 
-### Gestures
+### Sketch Mode
 
-- 1-finger drag: Orbit (model mode) / Draw (sketch mode)
-- 2-finger pinch: Zoom
-- 2-finger drag: Pan
-- Tap: Select face/edge/body
-- Double-tap: Edit feature / Fit-all (if nothing selected)
-- Long-press: Context menu
-- 3-finger swipe: Undo (left) / Redo (right) — iOS standard
+Select a face, enter sketch mode: 2D orthographic canvas with drawing tools (line, arc, circle, rectangle, dimension). Constraints are visible and interactive — under-constrained geometry pulses to show free degrees of freedom. Completing a sketch returns to model mode where it can be extruded, cut, or revolved.
 
-### Constraint Visualization (Sketch Mode)
+### Design Philosophy
 
-Make it feel like a game, not like homework:
-- **Under-constrained:** Pulsing colored arrows show free degrees of freedom, draggable
-- **Fully constrained:** Green outline, subtle celebration animation
-- **Over-constrained:** Red highlights, tap to see conflicts and choose which to remove
+Most CAD apps are unapproachable not because engineering is hard but because the UI is bad.
 
-### Feature Tree Interactions
-
-- **Tap:** Select feature → highlight geometry in viewport → show in PropertyPanel
-- **Long-press drag:** Reorder feature in history (re-evaluates from the moved position)
-- **Swipe left:** Suppress (gray out, skip during eval) or Delete
-- **Eye icon:** Toggle suppression
-- **Tap name:** Rename inline
-- **Tap parameter value:** Edit inline (quick edit without opening full PropertyPanel)
-
-## OpenSCAD Compatibility
-
-OpenSCAD compatibility is an **import/export** concern, not an architectural constraint:
-
-- **Import:** The SCADParser module can read standard .scad files and convert them to Feature objects. Simple scripts (primitives + booleans + transforms) convert cleanly. Complex scripts with modules, loops, and conditionals produce a flattened feature set.
-- **Export:** The ScriptExporter generates valid .scad from any model. Thingiverse users can download and open these in desktop OpenSCAD.
-- **Customizer variables** in imported .scad files become feature parameters in the app.
-- **@feature annotations** in .scad comments provide hints for better import fidelity. These are ignored by desktop OpenSCAD.
-
-The key difference from the old architecture: we are not constrained by what OpenSCAD can express. If our feature tree supports fillets, we export the filleted result as a polyhedron in .scad, not try to express the fillet operation in a language that doesn't have one.
-
-## Testing Strategy
-
-### Unit Tests (XCTest)
-
-Every package has `Tests/` with XCTest targets:
-- **ParametricEngine:** Feature creation, evaluation order, parameter updates, constraint solver, script export fidelity
-- **GeometryKernel:** Primitive generation, boolean correctness, tessellation quality, export format correctness, Manifold bridge
-- **Renderer:** Pipeline initialization, camera math, pick ray calculation
-- **SCADParser:** Lexer, parser, evaluator, feature conversion from AST
-- **App:** ViewModel logic, undo/redo, file serialization round-trip
-
-Run: `swift test --package-path ParametricEngine && swift test --package-path GeometryKernel && swift test --package-path Renderer && swift test --package-path SCADParser`
-
-### Integration Tests
-
-- `TestFixtures/` contains `.ioscad` files and `.scad` files for regression testing
-- Test that .scad import → feature conversion → .scad export produces equivalent geometry
-- Test that .ioscad save → load round-trips without data loss
-
-### E2E Tests (Maestro)
-
-Maestro YAML flows test the full app in iOS Simulator:
-- App launch, add primitive, feature tree interaction, undo/redo, export
-- Every interactive UI element MUST have `.accessibilityIdentifier()` for Maestro
-- CI runs via `.github/workflows/maestro.yml`
-
-See test flows in `MaestroTests/flows/`.
-
-**Accessibility ID convention:**
-```
-toolbar_add_button
-toolbar_sketch_button
-toolbar_menu_button
-feature_tree_item_{index}
-feature_tree_item_{index}_eye
-property_panel
-property_field_{param_name}
-property_slider_{param_name}
-viewport_view
-export_button
-export_stl / export_3mf / export_step / export_scad
-undo_button
-redo_button
-sketch_tool_line / sketch_tool_arc / sketch_tool_circle / sketch_tool_rect
-sketch_tool_dimension
-sketch_done_button
-```
+- Progressive disclosure over feature dumps
+- The feature tree is your history — visible, reorderable, editable, suppressible
+- Constraints are visible, not hidden — make sketching feel like a game
+- Undo is fearless
+- Export is generous — your model, your formats, no lock-in
+- A hobbyist and an engineer need the same tool — the difference is disclosure, not capability
 
 ## Development Phases
 
 ### Phase 1: Foundation
-
-Core modeling loop: add primitive → see it → select faces/edges → modify → undo → save → export.
-
-- ParametricEngine with primitive features (box, cylinder, sphere, cone)
-- GeometryKernel with mesh generation, Manifold booleans, face/edge group tracking
-- Metal renderer with selection highlighting
-- Feature tree UI with reorder, suppress, delete
-- PropertyPanel for editing feature parameters
-- Undo/redo (feature list snapshots)
-- Native file format (.ioscad) save/load
-- STL and 3MF export
-- Boolean features (union, subtract, intersect)
-- Transform features (translate, rotate, scale, mirror)
+Add primitives, see them rendered, select faces/edges, edit parameters, boolean operations, transforms, undo/redo, save/load as STEP, export STL/3MF.
 
 ### Phase 2: Sketch + Extrude
-
-The workflow that makes parametric CAD actually parametric: sketch a 2D profile, extrude it, reference existing geometry.
-
-- Sketch mode: 2D canvas on a selected face/plane
-- Sketch primitives: line, arc, circle, rectangle, polygon
-- Constraint solver: coincident, tangent, perpendicular, parallel, equal, dimension
-- Extrude/Cut from sketch
-- Revolve from sketch
-- Face/edge reference system (features can reference geometry from earlier features)
-- Constraint visualization ("make it feel like a game")
+2D sketch mode on a plane/face, constraint solver, extrude/cut/revolve from sketches, face/edge reference system between features.
 
 ### Phase 3: Advanced Operations
+Fillet, chamfer, shell, patterns (linear, circular, mirror), .scad import/export, CadQuery export.
 
-The features that turn basic modeling into serious CAD.
-
-- Fillet and chamfer (mesh-based in Phase 1 kernel, exact in BREP upgrade)
-- Shell operation
-- Draft angle
-- Linear and circular patterns
-- Mirror pattern
-- .scad import (SCADParser → Feature conversion)
-- .scad and CadQuery export
-- OpenSCAD customizer variable import
-
-### Phase 4: BREP + Precision
-
-Upgrade the geometry kernel for engineering-grade output.
-
-- True BREP representation (exact surfaces, not mesh approximation)
-- STEP AP214 export with exact geometry
-- text() feature (font outlines → sketch → extrude)
-- Sweep (profile along path)
-- Loft (between profiles)
-- Improved fillet/chamfer with exact rolling-ball blends
+### Phase 4: Precision + AI
+True BREP geometry kernel (exact surfaces), improved STEP fidelity, sweep/loft, AI feature generation from natural language.
 
 ### Phase 5: Polish + Ship
-
-- iPad layout (side-by-side panels, Apple Pencil in sketch mode)
-- Multi-body support and assembly constraints
-- 2D drawing generation (orthographic projections, dimensions, section views)
-- DXF/SVG/PDF export
-- App Store launch
-- Community sharing (parametric customizer links)
-
-## Performance Targets
-
-| Operation | iPhone 15 | iPhone 12 |
-|-----------|-----------|-----------|
-| Add feature + re-eval (< 10 features) | < 50ms | < 150ms |
-| Full rebuild (< 50 features) | < 500ms | < 1.5s |
-| Sketch constraint solve | < 16ms | < 50ms |
-| Display render | 60fps (< 100K tris) | 30fps |
-| Tessellation | < 100ms | < 300ms |
-| STL export (100K tris) | < 1s | < 3s |
-| File save/load | < 50ms | < 150ms |
-| .scad import (500 lines) | < 200ms | < 600ms |
-
-## Design Philosophy
-
-Most CAD apps are unapproachable not because engineering is hard but because the UI is bad. Decades of dogma: 200-icon toolbars, 6-deep modal dialogs, right-click menus that change with invisible state.
-
-Every UI decision asks: "Is this complexity necessary, or is it dogma?"
-
-- **Direct manipulation over text manipulation.** Touch a face, extrude it. Don't type "linear_extrude(height=10) square([20,20]);" into a text box.
-- **Progressive disclosure over feature dumps.** Show 3 tools, let users discover 30.
-- **The feature tree is your history.** Every step is visible, reorderable, editable, suppressible. No black boxes.
-- **Constraints are visible, not hidden.** Show degrees of freedom as draggable handles. Make sketching feel like a game.
-- **Undo is fearless.** The feature list IS the undo history. You can always go back.
-- **Export is generous.** Your model, your formats. OpenSCAD, CadQuery, STL, 3MF, STEP. No lock-in.
-- **Respect the user's intelligence.** A hobbyist and an engineer need the same tool. The difference is disclosure, not capability.
+iPad layout with Apple Pencil, multi-body + assemblies, 2D drawings (DXF/PDF), App Store launch.
 
 ## What NOT to Do
 
-- Do not store model geometry independently of the feature list.
-- Do not make script the source of truth. Script is an export format.
-- Do not add Python, JavaScript, or WASM runtimes.
-- Do not use C++ outside of the ManifoldBridge directory.
-- Do not add third-party UI frameworks. SwiftUI + UIKit (for Metal view) only.
-- Do not add networking or cloud features until Phase 5.
-- Do not skip the feature evaluation pipeline for "optimization." If it's slow, optimize the pipeline, don't bypass it.
-- Do not design the UI around OpenSCAD's limitations. Design the UI for parametric CAD; export to OpenSCAD as a lossy format.
+- Do not store model state outside the feature list
+- Do not make script the source of truth — STEP is the file format, scripts are export
+- Do not add Python, JavaScript, or WASM runtimes
+- Do not use C++ outside of ManifoldBridge
+- Do not add third-party UI frameworks — SwiftUI + UIKit (Metal view) only
+- Do not skip the feature evaluation pipeline for "optimization"
+- Do not add networking or cloud features until Phase 5
+- Do not design the UI around any scripting language's limitations
