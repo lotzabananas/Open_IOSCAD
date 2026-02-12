@@ -21,6 +21,7 @@ struct ContentView: View {
                         Text(error)
                             .font(.caption)
                             .foregroundColor(.white)
+                            .lineLimit(2)
                         Spacer()
                         Button(action: { viewModel.lastError = nil }) {
                             Image(systemName: "xmark.circle.fill")
@@ -37,7 +38,11 @@ struct ContentView: View {
                 if viewModel.showFeatureTree {
                     FeatureTreeView(
                         features: viewModel.features,
-                        selectedIndex: $viewModel.selectedFeatureIndex
+                        selectedIndex: $viewModel.selectedFeatureIndex,
+                        onSuppress: { viewModel.suppressFeature(at: $0) },
+                        onDelete: { viewModel.deleteFeature(at: $0) },
+                        onRename: { viewModel.renameFeature(at: $0, to: $1) },
+                        onMove: { viewModel.moveFeature(from: $0, to: $1) }
                     )
                     .frame(maxHeight: 200)
                     .transition(.move(edge: .bottom))

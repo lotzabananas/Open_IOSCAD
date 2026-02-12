@@ -22,15 +22,15 @@ struct AddPrimitiveSheet: View {
                 }
 
                 Section("Operations") {
-                    Button(action: { addOperationAndDismiss("difference") }) {
+                    Button(action: { addBooleanAndDismiss("difference") }) {
                         Label("Difference", systemImage: "minus.square")
                     }
 
-                    Button(action: { addOperationAndDismiss("union") }) {
+                    Button(action: { addBooleanAndDismiss("union") }) {
                         Label("Union", systemImage: "plus.square")
                     }
 
-                    Button(action: { addOperationAndDismiss("intersection") }) {
+                    Button(action: { addBooleanAndDismiss("intersection") }) {
                         Label("Intersection", systemImage: "square.on.square")
                     }
                 }
@@ -50,9 +50,8 @@ struct AddPrimitiveSheet: View {
         dismiss()
     }
 
-    private func addOperationAndDismiss(_ op: String) {
-        viewModel.pushUndo()
-        viewModel.scriptText += "\(op)() {\n    \n}\n"
+    private func addBooleanAndDismiss(_ op: String) {
+        viewModel.addBooleanOp(op)
         dismiss()
     }
 }
