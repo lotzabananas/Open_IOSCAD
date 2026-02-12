@@ -37,28 +37,16 @@ struct ToolbarView: View {
             .accessibilityIdentifier("toolbar_add_button")
             .frame(maxWidth: .infinity)
 
-            // Edit / Customizer
-            Button(action: { withAnimation { viewModel.showCustomizer.toggle() }}) {
+            // Feature Tree toggle
+            Button(action: { withAnimation { viewModel.showFeatureTree.toggle() }}) {
                 VStack(spacing: 2) {
-                    Image(systemName: "slider.horizontal.3")
+                    Image(systemName: "list.bullet")
                         .font(.title2)
-                    Text("Edit")
+                    Text("Features")
                         .font(.caption2)
                 }
             }
-            .accessibilityIdentifier("toolbar_customizer_button")
-            .frame(maxWidth: .infinity)
-
-            // Script toggle
-            Button(action: { withAnimation { viewModel.showScriptEditor.toggle() }}) {
-                VStack(spacing: 2) {
-                    Image(systemName: "chevron.left.forwardslash.chevron.right")
-                        .font(.title2)
-                    Text("Script")
-                        .font(.caption2)
-                }
-            }
-            .accessibilityIdentifier("toolbar_script_button")
+            .accessibilityIdentifier("toolbar_features_button")
             .frame(maxWidth: .infinity)
 
             Divider().frame(height: 24)

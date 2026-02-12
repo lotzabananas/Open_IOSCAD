@@ -142,15 +142,4 @@ final class IntegrationTests: XCTestCase {
         XCTAssertGreaterThan(stats2.hits, 0, "Cache should hit for unchanged subtrees")
     }
 
-    func testCustomizerVarsExtraction() throws {
-        let source = """
-        width = 40; // [10:100] Box width
-        height = 25; // [10:50]
-        cube([width, height, 10]);
-        """
-        let extractor = CustomizerExtractor()
-        let params = extractor.extract(from: source)
-        XCTAssertEqual(params.count, 2)
-        XCTAssertEqual(params[0].name, "width")
-    }
 }
