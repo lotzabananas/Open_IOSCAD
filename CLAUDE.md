@@ -6,12 +6,10 @@ OpeniOSCAD is a free (MIT), native iOS parametric CAD app. Users build 3D models
 ## Architecture — Non-Negotiable
 - **Feature-tree-authoritative.** The ordered list of Feature objects is the single source of truth at runtime. GUI actions modify the feature list. The engine re-evaluates from the modified point. Never store model state independently of the feature list.
 - **STEP-native file format.** Files save as standard STEP AP214 geometry with an `@openioscad` comment block containing the feature history as JSON. Any CAD tool can open the geometry. Our app can reconstruct full editing capability from the comment.
-- **Scripts are export formats.** OpenSCAD and CadQuery are export targets, not the source of truth.
-- Four Swift packages + one app target:
+- Three Swift packages + one app target (SCADParser will be re-added when .scad import is needed):
   - **ParametricEngine:** Feature types, feature evaluator, constraint solver. Pure Swift. No UI dependencies.
   - **GeometryKernel:** Primitives, booleans (via Manifold C++ bridge), extrude/revolve/fillet, tessellation, STEP read/write, mesh export. Swift + C++ (ManifoldBridge only).
   - **Renderer:** Metal render pipeline, camera, face/edge selection. Swift + Metal.
-  - **SCADParser:** OpenSCAD lexer/parser/evaluator for .scad import. Pure Swift. Import-only.
   - **OpeniOSCAD (app):** SwiftUI views, view models, file handling, undo/redo. Depends on all packages.
 
 ## Feature-Authoritative Flow
@@ -35,21 +33,19 @@ NEVER skip this flow. Never cache model state outside the feature list.
 
 ## File Format
 - **Native:** `.step` (STEP AP214 with `@openioscad` JSON comment block for feature history)
-- **Import:** `.step` (native), `.scad` (via SCADParser → Feature conversion), `.stl`, `.3mf`
-- **Export:** `.step` (same as save), `.stl`, `.3mf`, `.scad` (OpenSCAD — lossy), `.py` (CadQuery)
+- **Import:** `.step` (native), `.stl`, `.3mf`
+- **Export:** `.step` (same as save), `.stl`, `.3mf`
 
 ## Package Boundaries
 - ParametricEngine defines Feature types and calls GeometryKernel for geometry. It does not import Renderer or UI types.
 - GeometryKernel knows nothing about features. It operates on geometry primitives, solids, and meshes.
 - Renderer knows only TriangleMesh and selection state. Zero dependency on ParametricEngine.
-- SCADParser is an import module. It converts .scad AST → Feature[]. Not on the critical modeling path.
 - Data flows one direction: Feature[] → ParametricEngine → GeometryKernel → Tessellator → TriangleMesh → Renderer.
 
 ## Testing
 - Unit tests: every package has `Tests/` with XCTest targets.
-- Integration tests: `TestFixtures/` contains `.step` and `.scad` files for regression testing.
 - E2E tests: `MaestroTests/flows/` contains Maestro YAML flows for iOS Simulator.
-- Run unit tests: `swift test --package-path ParametricEngine && swift test --package-path GeometryKernel && swift test --package-path Renderer && swift test --package-path SCADParser`
+- Run unit tests: `swift test --package-path GeometryKernel && swift test --package-path Renderer`
 - Run Maestro: `./MaestroTests/scripts/build_and_test.sh`
 
 ## Performance Targets

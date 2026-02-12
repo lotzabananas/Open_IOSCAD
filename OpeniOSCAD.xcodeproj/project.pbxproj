@@ -10,19 +10,14 @@
 		0F499534C23EDB37E83C2E3D /* Renderer in Frameworks */ = {isa = PBXBuildFile; productRef = E80E34D959CD01EB20F8EFDC /* Renderer */; };
 		23E55F0E0F7C3F1560AA7F65 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AF961288383A2960FC21F6 /* ContentView.swift */; };
 		4C95E687F16FF39DA8942B9A /* ViewportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F089EE8BF621BA3A095A91DC /* ViewportView.swift */; };
-		6F78C02F51C901E807D46F8F /* ScriptEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 806CCB8C3D709AFEAB32AC11 /* ScriptEditorView.swift */; };
-		8B819DF63A189A8E95D3E31C /* SyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EC5C3D5D37A2F5B88A3A8D /* SyntaxHighlighter.swift */; };
 		9964134A58CBAB1EEEC749E4 /* AddPrimitiveSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D413721D8959A01ABB9BE991 /* AddPrimitiveSheet.swift */; };
 		9F990A38C2287BA6AD62A07F /* FeatureTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E0D7EEEA45D5C903102FF5 /* FeatureTreeView.swift */; };
 		A14D2D8E8B601E5C49FA77C5 /* OpeniOSCADApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B07A71C1C4334C79862FE7 /* OpeniOSCADApp.swift */; };
 		AC7CD1EDB022C1F30B39A3D1 /* ExportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F64B5F02929734534D0E2B9D /* ExportSheet.swift */; };
-		C5AECCFFABBB92FFB51F7F2F /* ScriptBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10AB91A81D9792651286A02D /* ScriptBridgeTests.swift */; };
+		C5AECCFFABBB92FFB51F7F2F /* ModelViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10AB91A81D9792651286A02D /* ModelViewModelTests.swift */; };
 		D24118D8B84F7C7A109957AF /* ToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8276925FD48E03384B592D1E /* ToolbarView.swift */; };
-		DC4B7BCC2B54A127F1BBCFBE /* ParameterPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B96E81B74A6733DB19C269 /* ParameterPanelView.swift */; };
 		E6941CBD1EAB540F4943E3C9 /* ModelViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46179B6266220A2BF40AEAF8 /* ModelViewModel.swift */; };
 		EAD511EB0707329DCD3CBAFE /* GeometryKernel in Frameworks */ = {isa = PBXBuildFile; productRef = CD479126DE10771A5218A300 /* GeometryKernel */; };
-		EB030FC6FE0F693B1BCF1DF8 /* SCADEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 7740831A762E7AB8DE152417 /* SCADEngine */; };
-		FB3F52873B006B9B6F3BA609 /* ScriptBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CBECFC4B2635975DC561D26 /* ScriptBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,17 +31,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		03EC5C3D5D37A2F5B88A3A8D /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
 		0ABA511F8BCB29C3BC4379D1 /* GeometryKernel */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GeometryKernel; path = GeometryKernel; sourceTree = SOURCE_ROOT; };
-		10AB91A81D9792651286A02D /* ScriptBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptBridgeTests.swift; sourceTree = "<group>"; };
+		10AB91A81D9792651286A02D /* ModelViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelViewModelTests.swift; sourceTree = "<group>"; };
 		1294C04AFB3D619536486B1B /* OpeniOSCAD.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OpeniOSCAD.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		20B96E81B74A6733DB19C269 /* ParameterPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParameterPanelView.swift; sourceTree = "<group>"; };
 		3D968C202BDA32BADCB54359 /* Renderer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Renderer; path = Renderer; sourceTree = SOURCE_ROOT; };
 		42E0D7EEEA45D5C903102FF5 /* FeatureTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTreeView.swift; sourceTree = "<group>"; };
 		46179B6266220A2BF40AEAF8 /* ModelViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelViewModel.swift; sourceTree = "<group>"; };
-		5A004D1AC409CDFEF004FEC8 /* SCADEngine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SCADEngine; path = SCADEngine; sourceTree = SOURCE_ROOT; };
-		5CBECFC4B2635975DC561D26 /* ScriptBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptBridge.swift; sourceTree = "<group>"; };
-		806CCB8C3D709AFEAB32AC11 /* ScriptEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptEditorView.swift; sourceTree = "<group>"; };
 		8276925FD48E03384B592D1E /* ToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarView.swift; sourceTree = "<group>"; };
 		988EA7E86EE020DE68160C8F /* OpeniOSCADTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OpeniOSCADTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A8B07A71C1C4334C79862FE7 /* OpeniOSCADApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpeniOSCADApp.swift; sourceTree = "<group>"; };
@@ -61,7 +51,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EB030FC6FE0F693B1BCF1DF8 /* SCADEngine in Frameworks */,
 				EAD511EB0707329DCD3CBAFE /* GeometryKernel in Frameworks */,
 				0F499534C23EDB37E83C2E3D /* Renderer in Frameworks */,
 			);
@@ -75,7 +64,6 @@
 			children = (
 				0ABA511F8BCB29C3BC4379D1 /* GeometryKernel */,
 				3D968C202BDA32BADCB54359 /* Renderer */,
-				5A004D1AC409CDFEF004FEC8 /* SCADEngine */,
 			);
 			name = Packages;
 			sourceTree = "<group>";
@@ -86,7 +74,6 @@
 				F4AF961288383A2960FC21F6 /* ContentView.swift */,
 				46179B6266220A2BF40AEAF8 /* ModelViewModel.swift */,
 				A8B07A71C1C4334C79862FE7 /* OpeniOSCADApp.swift */,
-				4B071429389D882F08D5282E /* ViewModels */,
 				443D8941000B3D0E4E9EB58F /* Views */,
 			);
 			path = OpeniOSCAD;
@@ -98,27 +85,16 @@
 				D413721D8959A01ABB9BE991 /* AddPrimitiveSheet.swift */,
 				F64B5F02929734534D0E2B9D /* ExportSheet.swift */,
 				42E0D7EEEA45D5C903102FF5 /* FeatureTreeView.swift */,
-				20B96E81B74A6733DB19C269 /* ParameterPanelView.swift */,
-				806CCB8C3D709AFEAB32AC11 /* ScriptEditorView.swift */,
-				03EC5C3D5D37A2F5B88A3A8D /* SyntaxHighlighter.swift */,
 				8276925FD48E03384B592D1E /* ToolbarView.swift */,
 				F089EE8BF621BA3A095A91DC /* ViewportView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
 		};
-		4B071429389D882F08D5282E /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-				5CBECFC4B2635975DC561D26 /* ScriptBridge.swift */,
-			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
 		8BAAF081C2570971C7E5EE48 /* OpeniOSCADTests */ = {
 			isa = PBXGroup;
 			children = (
-				10AB91A81D9792651286A02D /* ScriptBridgeTests.swift */,
+				10AB91A81D9792651286A02D /* ModelViewModelTests.swift */,
 			);
 			path = OpeniOSCADTests;
 			sourceTree = "<group>";
@@ -176,7 +152,6 @@
 			);
 			name = OpeniOSCAD;
 			packageProductDependencies = (
-				7740831A762E7AB8DE152417 /* SCADEngine */,
 				CD479126DE10771A5218A300 /* GeometryKernel */,
 				E80E34D959CD01EB20F8EFDC /* Renderer */,
 			);
@@ -206,7 +181,6 @@
 			packageReferences = (
 				54F6F0926EAD38AC7BA889D1 /* XCLocalSwiftPackageReference "GeometryKernel" */,
 				78B80904118E3AF22568E9B9 /* XCLocalSwiftPackageReference "Renderer" */,
-				07D6CECC400A362A3ADB3AA8 /* XCLocalSwiftPackageReference "SCADEngine" */,
 			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
@@ -223,7 +197,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C5AECCFFABBB92FFB51F7F2F /* ScriptBridgeTests.swift in Sources */,
+				C5AECCFFABBB92FFB51F7F2F /* ModelViewModelTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,10 +211,6 @@
 				9F990A38C2287BA6AD62A07F /* FeatureTreeView.swift in Sources */,
 				E6941CBD1EAB540F4943E3C9 /* ModelViewModel.swift in Sources */,
 				A14D2D8E8B601E5C49FA77C5 /* OpeniOSCADApp.swift in Sources */,
-				DC4B7BCC2B54A127F1BBCFBE /* ParameterPanelView.swift in Sources */,
-				FB3F52873B006B9B6F3BA609 /* ScriptBridge.swift in Sources */,
-				6F78C02F51C901E807D46F8F /* ScriptEditorView.swift in Sources */,
-				8B819DF63A189A8E95D3E31C /* SyntaxHighlighter.swift in Sources */,
 				D24118D8B84F7C7A109957AF /* ToolbarView.swift in Sources */,
 				4C95E687F16FF39DA8942B9A /* ViewportView.swift in Sources */,
 			);
@@ -263,7 +233,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDocumentTypes = "({CFBundleTypeName = 'OpenSCAD File'; LSHandlerRank = Owner; LSItemContentTypes = ('public.text');})";
+				INFOPLIST_KEY_CFBundleDocumentTypes = "({CFBundleTypeName = 'STEP File'; LSHandlerRank = Owner; LSItemContentTypes = ('public.step', 'public.text');})";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -289,7 +259,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDocumentTypes = "({CFBundleTypeName = 'OpenSCAD File'; LSHandlerRank = Owner; LSItemContentTypes = ('public.text');})";
+				INFOPLIST_KEY_CFBundleDocumentTypes = "({CFBundleTypeName = 'STEP File'; LSHandlerRank = Owner; LSItemContentTypes = ('public.step', 'public.text');})";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -495,10 +465,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		07D6CECC400A362A3ADB3AA8 /* XCLocalSwiftPackageReference "SCADEngine" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = SCADEngine;
-		};
 		54F6F0926EAD38AC7BA889D1 /* XCLocalSwiftPackageReference "GeometryKernel" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = GeometryKernel;
@@ -510,10 +476,6 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		7740831A762E7AB8DE152417 /* SCADEngine */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = SCADEngine;
-		};
 		CD479126DE10771A5218A300 /* GeometryKernel */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = GeometryKernel;

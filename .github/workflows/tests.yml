@@ -7,8 +7,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: GeometryKernel Tests
         run: swift test --package-path GeometryKernel
-      - name: SCADEngine Tests
-        run: swift test --package-path SCADEngine
       - name: Build App
         run: |
           xcodebuild \
