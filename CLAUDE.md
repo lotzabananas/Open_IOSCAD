@@ -1,61 +1,68 @@
 # CLAUDE.md — OpeniOSCAD Project Instructions
 
 ## What This Project Is
-OpeniOSCAD is a free (MIT), native iOS parametric CAD app. Every model is an OpenSCAD-compatible .scad script. The GUI writes script, the engine evaluates script, the viewport renders the result.
+OpeniOSCAD is a free (MIT), native iOS parametric CAD app. Users build 3D models through direct touch interaction with a feature-tree-based history. The app exports to OpenSCAD scripts, STL, 3MF, and STEP. Read VISION.md for the full architecture and rationale.
 
 ## Architecture — Non-Negotiable
-- Script-authoritative. The .scad text is the single source of truth. GUI actions modify the script text. The engine rebuilds geometry from script. Never store model state independently of the script.
-- Three Swift packages + one app target:
-  - SCADEngine: OpenSCAD lexer/parser/evaluator. Pure Swift. No UI dependencies.
-  - GeometryKernel: Mesh primitives, CSG (BSP-tree, Manifold swap-in planned), transforms, extrusions, export. Swift.
-  - Renderer: Metal render pipeline, camera, selection. Swift + Metal.
-  - OpeniOSCAD (app): SwiftUI views, view models, file handling. Depends on all three packages.
-- CSG booleans currently use BSP-tree implementation. Manifold C++ bridge planned for robustness upgrade.
+- **Feature-tree-authoritative.** The ordered list of Feature objects is the single source of truth. GUI actions modify the feature list. The engine re-evaluates from the modified point. Never store model state independently of the feature list. Scripts are an export format, not the source of truth.
+- Four Swift packages + one app target:
+  - **ParametricEngine:** Feature types, feature evaluator, constraint solver, script exporters. Pure Swift. No UI dependencies.
+  - **GeometryKernel:** BREP types, primitives, booleans (via Manifold C++ bridge), extrude/revolve/fillet, tessellation, mesh export. Swift + C++ (ManifoldBridge only).
+  - **Renderer:** Metal render pipeline, camera, face/edge selection. Swift + Metal.
+  - **SCADParser:** OpenSCAD lexer/parser/evaluator for .scad import. Pure Swift. Import-only — not on the critical modeling path.
+  - **OpeniOSCAD (app):** SwiftUI views, view models, file handling, undo/redo. Depends on all packages.
+
+## Feature-Authoritative Flow
+When implementing ANY operation that changes the model:
+1. The action MUST modify the Feature list (append, update, reorder, or remove a Feature)
+2. ModelViewModel detects the change
+3. ParametricEngine re-evaluates from the modified feature forward
+4. GeometryKernel produces updated geometry
+5. Renderer displays the tessellated result
+6. Feature tree UI updates
+
+NEVER skip this flow. Never cache model state outside the feature list. Never let the viewport or a script be the source of truth.
 
 ## Code Rules
-- Swift for all app logic, script engine, UI, rendering, mesh generation, export.
-- Every interactive UI element MUST have .accessibilityIdentifier() for Maestro testing. See 03_MAESTRO_TESTING.md for the naming convention.
-- Write unit tests alongside implementations, not after. Tests live in each package's Tests/ directory.
-- No force unwraps in production code. Use guard/let or throw.
-- Errors from script parsing/evaluation must include line numbers and descriptive messages.
+- Swift for all app logic, engine, UI, rendering, mesh generation, export.
+- C++ ONLY in `GeometryKernel/Sources/ManifoldBridge/` for wrapping the Manifold library. Nowhere else.
+- Every interactive UI element MUST have `.accessibilityIdentifier()` for Maestro testing. Convention in VISION.md.
+- Write unit tests alongside implementations, not after. Tests live in each package's `Tests/` directory.
+- No force unwraps in production code. Use `guard`/`let` or `throw`.
+- Errors must include context: feature name, parameter name, and descriptive messages.
 
-## Script-Authoritative Flow
-When implementing ANY feature that changes the model:
-1. The action MUST modify the script text (String)
-2. ModelViewModel detects the script change
-3. SCADEngine re-parses and re-evaluates
-4. GeometryKernel produces updated mesh
-5. Renderer displays the result
-6. Feature tree updates from @feature annotations
+## File Format
+- **Native:** `.ioscad` (JSON via Swift Codable). Human-readable, git-diffable.
+- **Import:** `.scad` (via SCADParser → Feature conversion), `.stl`, `.3mf`
+- **Export:** `.scad` (OpenSCAD), `.py` (CadQuery), `.stl`, `.3mf`, `.step` (Phase 4+)
 
-NEVER skip this flow. Never cache model state outside the script. Never let the viewport or feature tree be the source of truth.
-
-## OpenSCAD Compatibility
-- Standard .scad files from Thingiverse must parse and render.
-- OpeniOSCAD extensions use structured comments: // @feature "Name"
-- Desktop OpenSCAD ignores these comments. Our parser extracts them for the feature tree.
-- When exporting, all output must be valid OpenSCAD syntax.
-
-## File Organization
-- Keep package boundaries clean. SCADEngine should not import GeometryKernel types directly in its public API. Use a protocol/enum (GeometryOp) as the interface between engine and kernel.
-- Mesh data flows: SCADEngine produces GeometryOp tree → GeometryKernel evaluates to TriangleMesh → Renderer displays TriangleMesh.
+## Package Boundaries
+- ParametricEngine defines Feature types and calls GeometryKernel for geometry. It does not import Renderer or UI types.
+- GeometryKernel knows nothing about features. It operates on geometry primitives, solids, and meshes.
+- Renderer knows only TriangleMesh and selection state. Zero dependency on ParametricEngine.
+- SCADParser is an import module. It converts .scad AST → Feature[]. It does not participate in the normal modeling pipeline.
+- Data flows: Feature[] → ParametricEngine evaluates → GeometryKernel produces geometry → Tessellator → TriangleMesh → Renderer displays.
 
 ## Testing
-- Unit tests: every package has Tests/ with XCTest targets.
-- Integration tests: TestFixtures/thingiverse_samples/ contains real .scad files. Test that they parse, evaluate, and produce non-empty meshes.
-- E2E tests: MaestroTests/flows/ contains Maestro YAML flows for iOS Simulator.
-- Run unit tests: `swift test --package-path SCADEngine && swift test --package-path GeometryKernel && swift test --package-path Renderer`
+- Unit tests: every package has `Tests/` with XCTest targets.
+- Integration tests: `TestFixtures/` contains `.ioscad` and `.scad` files for regression testing.
+- E2E tests: `MaestroTests/flows/` contains Maestro YAML flows for iOS Simulator.
+- Run unit tests: `swift test --package-path ParametricEngine && swift test --package-path GeometryKernel && swift test --package-path Renderer && swift test --package-path SCADParser`
 - Run Maestro: `./MaestroTests/scripts/build_and_test.sh`
 
 ## Performance Targets
-- Script parse+eval: <100ms on iPhone 15
-- Full model rebuild (<50 features): <500ms on iPhone 15
+- Add feature + re-eval (<10 features): <50ms on iPhone 15
+- Full rebuild (<50 features): <500ms on iPhone 15
 - Display render: 60fps for <100K triangles
 - STL export: <1s for 100K triangles
+- File save/load: <50ms
 
 ## What NOT to Do
-- Do not add Python, JavaScript, or WASM to this project.
-- Do not store model geometry independently of the script.
-- Do not skip the script-authoritative flow for "optimization." If it's slow, optimize the pipeline, don't bypass it.
+- Do not make script the source of truth. The feature list is the source of truth.
+- Do not add Python, JavaScript, or WASM runtimes.
+- Do not use C++ outside of ManifoldBridge.
+- Do not store model geometry independently of the feature list.
+- Do not skip the feature evaluation pipeline for "optimization." If it's slow, optimize the pipeline, don't bypass it.
 - Do not add third-party UI frameworks. SwiftUI + UIKit (for Metal view) only.
 - Do not add networking or cloud features until Phase 5.
+- Do not design UI around OpenSCAD limitations. Design for parametric CAD; export to OpenSCAD as a lossy format.
