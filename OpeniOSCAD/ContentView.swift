@@ -52,11 +52,12 @@ struct ContentView: View {
                 if viewModel.showScriptEditor {
                     ScriptEditorView(
                         text: $viewModel.scriptText,
-                        onCommit: { viewModel.rebuildFromScript() }
+                        onCommit: { viewModel.rebuildFromScript() },
+                        errorMessage: viewModel.lastError,
+                        jumpToLine: viewModel.jumpToLine
                     )
                     .frame(height: 250)
                     .transition(.move(edge: .bottom))
-                    .accessibilityIdentifier("script_editor_view")
                 }
 
                 // Customizer Panel (toggled)

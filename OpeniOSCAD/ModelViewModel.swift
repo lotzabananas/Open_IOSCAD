@@ -27,9 +27,17 @@ final class ModelViewModel: ObservableObject {
     @Published var showExportSheet: Bool = false
     @Published var showExportSuccess: Bool = false
     @Published var lastError: String?
-    @Published var selectedFeatureIndex: Int? = nil
+    @Published var selectedFeatureIndex: Int? = nil {
+        didSet {
+            // Jump-to-feature: update jumpToLine when a feature is selected
+            if let idx = selectedFeatureIndex, idx < features.count {
+                jumpToLine = features[idx].lineNumber
+            }
+        }
+    }
     @Published var features: [FeatureItem] = []
     @Published var customizerParams: [CustomizerParam] = []
+    @Published var jumpToLine: Int? = nil
 
     // Undo/Redo
     @Published var canUndo: Bool = false
