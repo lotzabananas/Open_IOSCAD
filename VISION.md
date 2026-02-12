@@ -103,9 +103,9 @@ The 3D viewport is always primary. The feature tree is a collapsible bottom pane
 
 ### Progressive Disclosure
 
-- **Level 1:** Add primitives. See the feature tree. Tap to select. Undo/redo.
-- **Level 2:** Face/edge selection reveals contextual operations. Feature reorder, suppress, delete. Property editing.
-- **Level 3:** Sketch mode with constraints. Patterns. Multi-body. Script export. AI assist.
+- **Level 1:** Add shapes (box, cylinder) via convenience commands. See the feature tree. Tap to select. Undo/redo.
+- **Level 2:** Face/edge selection reveals contextual operations. Sketch mode on planes and faces. Feature reorder, suppress, delete. Property editing.
+- **Level 3:** Sketch constraints. Patterns. Multi-body. Script export. AI assist.
 
 ### Sketch Mode
 
@@ -125,10 +125,10 @@ Most CAD apps are unapproachable not because engineering is hard but because the
 ## Development Phases
 
 ### Phase 1: Foundation
-Add primitives, see them rendered, select faces/edges, edit parameters, boolean operations, transforms, undo/redo, save/load as STEP, export STL/3MF.
+Sketch-based modeling foundation. Create geometry through sketch → extrude/cut, with convenience commands for common shapes (box, cylinder). Manual sketch mode on planes and faces. Face/edge selection, parameter editing, undo/redo, STEP save/load, STL/3MF export.
 
-### Phase 2: Sketch + Extrude
-2D sketch mode on a plane/face, constraint solver, extrude/cut/revolve from sketches, face/edge reference system between features.
+### Phase 2: Sketch + Constraints
+Constraint solver for sketches (geometric + dimensional), revolve from sketches, advanced sketch tools (arc, spline, dimension visualization), face/edge reference stability across feature tree mutations.
 
 ### Phase 3: Advanced Operations
 Fillet, chamfer, shell, patterns (linear, circular, mirror), .scad import/export, CadQuery export.
