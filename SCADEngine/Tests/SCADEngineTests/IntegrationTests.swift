@@ -102,6 +102,46 @@ final class IntegrationTests: XCTestCase {
         XCTAssertEqual(stlData.count, 80 + 4 + 50 * 12) // header + count + 12 triangles
     }
 
+    func testCacheHitsOnRepeatedEvaluation() throws {
+        let source = """
+        width = 40;
+        cube([width, 20, 10]);
+        sphere(r=5, $fn=16);
+        """
+
+        let lexer = Lexer(source: source)
+        let tokens = try lexer.tokenize()
+        var parser = Parser(tokens: tokens)
+        let ast = try parser.parse()
+        let evaluator = Evaluator()
+
+        let kernel = GeometryKernel()
+
+        // First evaluation — all cache misses
+        let result1 = evaluator.evaluate(program: ast)
+        _ = kernel.evaluate(result1.geometry)
+        let stats1 = kernel.cacheStats
+        XCTAssertEqual(stats1.hits, 0)
+        XCTAssertGreaterThan(stats1.misses, 0)
+
+        // Change only the variable, re-evaluate
+        let source2 = """
+        width = 55;
+        cube([width, 20, 10]);
+        sphere(r=5, $fn=16);
+        """
+        let lexer2 = Lexer(source: source2)
+        let tokens2 = try lexer2.tokenize()
+        var parser2 = Parser(tokens: tokens2)
+        let ast2 = try parser2.parse()
+        let result2 = evaluator.evaluate(program: ast2)
+        _ = kernel.evaluate(result2.geometry)
+        let stats2 = kernel.cacheStats
+
+        // The sphere subtree should be a cache hit since it didn't change
+        XCTAssertGreaterThan(stats2.hits, 0, "Cache should hit for unchanged subtrees")
+    }
+
     func testCustomizerVarsExtraction() throws {
         let source = """
         width = 40; // [10:100] Box width

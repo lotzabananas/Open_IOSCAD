@@ -2,7 +2,7 @@ import Foundation
 import simd
 
 /// Geometry operation tree produced by the evaluator, consumed by the kernel.
-public indirect enum GeometryOp: Sendable {
+public indirect enum GeometryOp: Sendable, Hashable {
     case primitive(PrimitiveType, PrimitiveParams)
     case boolean(BooleanType, [GeometryOp])
     case transform(TransformType, TransformParams, GeometryOp)
@@ -12,12 +12,12 @@ public indirect enum GeometryOp: Sendable {
     case empty
 }
 
-public enum PrimitiveType: String, Sendable {
+public enum PrimitiveType: String, Sendable, Hashable {
     case cube, cylinder, sphere, polyhedron
     case circle, square, polygon
 }
 
-public struct PrimitiveParams: Sendable {
+public struct PrimitiveParams: Sendable, Hashable {
     public var size: SIMD3<Float>?
     public var radius: Float?
     public var radius1: Float?
@@ -67,15 +67,15 @@ public struct PrimitiveParams: Sendable {
     }
 }
 
-public enum BooleanType: String, Sendable {
+public enum BooleanType: String, Sendable, Hashable {
     case union, difference, intersection
 }
 
-public enum TransformType: String, Sendable {
+public enum TransformType: String, Sendable, Hashable {
     case translate, rotate, scale, mirror
 }
 
-public struct TransformParams: Sendable {
+public struct TransformParams: Sendable, Hashable {
     public var vector: SIMD3<Float>
     public var angle: Float?
     public var axis: SIMD3<Float>?
@@ -87,11 +87,11 @@ public struct TransformParams: Sendable {
     }
 }
 
-public enum ExtrudeType: String, Sendable {
+public enum ExtrudeType: String, Sendable, Hashable {
     case linear, rotate
 }
 
-public struct ExtrudeParams: Sendable {
+public struct ExtrudeParams: Sendable, Hashable {
     public var height: Float
     public var center: Bool
     public var twist: Float
@@ -120,7 +120,7 @@ public struct ExtrudeParams: Sendable {
 }
 
 /// 2D polygon for extrusion operations
-public struct Polygon2D: Sendable {
+public struct Polygon2D: Sendable, Hashable {
     public var points: [SIMD2<Float>]
 
     public init(points: [SIMD2<Float>] = []) {

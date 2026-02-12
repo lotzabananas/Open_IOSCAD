@@ -152,6 +152,23 @@ final class ModelViewModel: ObservableObject {
         scriptText = customizerExtractor.updateParameter(in: scriptText, name: name, newValue: value)
     }
 
+    /// Update parameter during slider drag — skips undo push (undo is handled on drag end).
+    func updateParameterDuringDrag(name: String, value: Value) {
+        isApplyingUndoRedo = true // Prevent scheduleUndoSnapshot from firing
+        scriptText = customizerExtractor.updateParameter(in: scriptText, name: name, newValue: value)
+        isApplyingUndoRedo = false
+    }
+
+    /// Called when slider drag starts — snapshot for undo.
+    func beginParameterDrag() {
+        pushUndoImmediate()
+    }
+
+    /// Called when slider drag ends — no action needed, undo was pushed on start.
+    func endParameterDrag() {
+        // Undo state was already pushed in beginParameterDrag
+    }
+
     // MARK: - Feature Tree Operations
 
     func suppressFeature(at index: Int) {

@@ -2,10 +2,46 @@ import Foundation
 import simd
 
 /// Main entry point for evaluating geometry operations into triangle meshes.
-public final class GeometryKernel: Sendable {
+/// Includes a subtree cache to skip recomputation of unchanged geometry.
+public final class GeometryKernel {
+    /// Cache mapping GeometryOp hash → TriangleMesh.
+    /// Cleared on each top-level evaluate, populated as subtrees are computed.
+    private var cache: [Int: TriangleMesh] = [:]
+    private var cacheHits = 0
+    private var cacheMisses = 0
+
     public init() {}
 
+    /// Evaluate a GeometryOp tree with caching.
+    /// The cache persists across calls — call `clearCache()` to reset.
     public func evaluate(_ op: GeometryOp) -> TriangleMesh {
+        let key = op.hashValue
+
+        if let cached = cache[key] {
+            cacheHits += 1
+            return cached
+        }
+
+        cacheMisses += 1
+        let result = evaluateUncached(op)
+        cache[key] = result
+        return result
+    }
+
+    /// Clear the geometry cache. Call when a full re-evaluation is needed
+    /// (e.g., structural script changes beyond variable updates).
+    public func clearCache() {
+        cache.removeAll()
+        cacheHits = 0
+        cacheMisses = 0
+    }
+
+    /// Returns (hits, misses) for performance monitoring.
+    public var cacheStats: (hits: Int, misses: Int) {
+        (cacheHits, cacheMisses)
+    }
+
+    private func evaluateUncached(_ op: GeometryOp) -> TriangleMesh {
         switch op {
         case .primitive(let type, let params):
             return evaluatePrimitive(type, params)

@@ -4,6 +4,8 @@ import SCADEngine
 struct ParameterPanelView: View {
     let parameters: [CustomizerParam]
     let onValueChanged: (String, Value) -> Void
+    var onDragStarted: (() -> Void)?
+    var onDragEnded: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -51,12 +53,14 @@ struct ParameterPanelView: View {
 
             switch param.constraint {
             case .range(let min, let step, let max):
-                SliderControl(
+                ThrottledSliderControl(
                     param: param,
                     min: min,
                     max: max,
                     step: step,
-                    onValueChanged: onValueChanged
+                    onValueChanged: onValueChanged,
+                    onDragStarted: onDragStarted,
+                    onDragEnded: onDragEnded
                 )
 
             case .enumList(let options):
@@ -91,30 +95,58 @@ struct ParameterPanelView: View {
     }
 }
 
-// MARK: - Parameter Controls
+// MARK: - Throttled Slider
 
-struct SliderControl: View {
+/// Slider that throttles value updates to ~15fps during drag and pushes undo on release.
+struct ThrottledSliderControl: View {
     let param: CustomizerParam
     let min: Double
     let max: Double
     let step: Double?
     let onValueChanged: (String, Value) -> Void
+    var onDragStarted: (() -> Void)?
+    var onDragEnded: (() -> Void)?
 
     @State private var value: Double = 0
+    @State private var isDragging = false
+    @State private var lastUpdateTime: Date = .distantPast
+
+    private let throttleInterval: TimeInterval = 1.0 / 15.0 // ~15fps
 
     var body: some View {
         HStack {
             Slider(
                 value: $value,
                 in: min...max,
-                step: step ?? ((max - min) / 100)
+                step: step ?? ((max - min) / 100),
+                onEditingChanged: { editing in
+                    if editing && !isDragging {
+                        isDragging = true
+                        onDragStarted?()
+                    } else if !editing && isDragging {
+                        isDragging = false
+                        // Final update on release
+                        onValueChanged(param.name, .number(value))
+                        onDragEnded?()
+                    }
+                }
             )
             .accessibilityIdentifier("param_slider_\(param.name)")
             .onAppear {
                 value = param.defaultValue.asDouble ?? min
             }
-            .onChange(of: value) { newVal in
-                onValueChanged(param.name, .number(newVal))
+            .onChange(of: value) {
+                guard isDragging else {
+                    // Not dragging (initial set or programmatic) — update immediately
+                    onValueChanged(param.name, .number(value))
+                    return
+                }
+                // Throttle during drag
+                let now = Date()
+                if now.timeIntervalSince(lastUpdateTime) >= throttleInterval {
+                    lastUpdateTime = now
+                    onValueChanged(param.name, .number(value))
+                }
             }
 
             Text(formatNumber(value))
@@ -125,10 +157,12 @@ struct SliderControl: View {
     }
 
     private func formatNumber(_ n: Double) -> String {
-        if n == n.rounded() { return "\(Int(n))" }
+        if n == n.rounded() && abs(n) < 1e10 { return "\(Int(n))" }
         return String(format: "%.1f", n)
     }
 }
+
+// MARK: - Other Controls
 
 struct PickerControl: View {
     let param: CustomizerParam
@@ -148,8 +182,8 @@ struct PickerControl: View {
         .onAppear {
             selected = param.defaultValue.asString ?? options.first ?? ""
         }
-        .onChange(of: selected) { newVal in
-            onValueChanged(param.name, .string(newVal))
+        .onChange(of: selected) {
+            onValueChanged(param.name, .string(selected))
         }
     }
 }
@@ -164,8 +198,8 @@ struct ToggleControl: View {
         Toggle(param.label, isOn: $isOn)
             .accessibilityIdentifier("param_field_\(param.name)")
             .onAppear { isOn = param.defaultValue.asBool }
-            .onChange(of: isOn) { newVal in
-                onValueChanged(param.name, .boolean(newVal))
+            .onChange(of: isOn) {
+                onValueChanged(param.name, .boolean(isOn))
             }
     }
 }

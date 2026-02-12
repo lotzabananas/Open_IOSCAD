@@ -64,8 +64,10 @@ struct ContentView: View {
                     ParameterPanelView(
                         parameters: viewModel.customizerParams,
                         onValueChanged: { name, value in
-                            viewModel.updateParameter(name: name, value: value)
-                        }
+                            viewModel.updateParameterDuringDrag(name: name, value: value)
+                        },
+                        onDragStarted: { viewModel.beginParameterDrag() },
+                        onDragEnded: { viewModel.endParameterDrag() }
                     )
                     .frame(maxHeight: 300)
                     .transition(.move(edge: .bottom))
