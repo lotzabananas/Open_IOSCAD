@@ -1,0 +1,11 @@
+appId: com.openioscad.app
+---
+- launchApp
+- assertVisible:
+    id: "viewport_view"
+- assertVisible:
+    id: "toolbar_add_button"
+- assertVisible:
+    id: "toolbar_customizer_button"
+- assertVisible:
+    id: "toolbar_script_button"

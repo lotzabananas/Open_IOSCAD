@@ -1,0 +1,26 @@
+appId: com.openioscad.app
+---
+- launchApp
+- tapOn:
+    id: "toolbar_script_button"
+- clearText
+- inputText: |
+    // Nested booleans
+    difference() {
+        union() {
+            cube([20, 20, 20], center=true);
+            sphere(r=12, $fn=24);
+        }
+        for (i = [0:2]) {
+            rotate([0, 0, i * 120])
+                translate([8, 0, 0])
+                    cylinder(h=30, r=3, center=true, $fn=16);
+        }
+    }
+- tapOn:
+    id: "toolbar_script_button"
+# Should render without crash (wait for complex evaluation)
+- extendedWaitUntil:
+    visible:
+      id: "viewport_view"
+    timeout: 10000

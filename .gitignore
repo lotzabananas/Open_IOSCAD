@@ -1,0 +1,27 @@
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+
+# CocoaPods (if ever used)
+Pods/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Maestro
+.maestro/
+
+# IDE
+.idea/
+*.xcscmblueprint

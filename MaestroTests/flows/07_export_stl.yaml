@@ -1,0 +1,10 @@
+appId: com.openioscad.app
+---
+- launchApp
+- tapOn:
+    id: "toolbar_add_button"
+- tapOn: "Cube"
+- tapOn:
+    id: "menu_export"
+- tapOn: "STL"
+- assertVisible: "Export Complete"

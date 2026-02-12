@@ -1,0 +1,18 @@
+appId: com.openioscad.app
+---
+- launchApp
+- tapOn:
+    id: "toolbar_add_button"
+- tapOn: "Cube"
+- assertVisible:
+    id: "feature_tree_item_0"
+# Undo
+- tapOn:
+    id: "undo_button"
+- assertNotVisible:
+    id: "feature_tree_item_0"
+# Redo
+- tapOn:
+    id: "redo_button"
+- assertVisible:
+    id: "feature_tree_item_0"

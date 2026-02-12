@@ -1,0 +1,25 @@
+appId: com.openioscad.app
+---
+- launchApp
+- tapOn:
+    id: "toolbar_script_button"
+- clearText
+- inputText: |
+    // Grid of cylinders
+    for (x = [0:5:50]) {
+        for (y = [0:5:50]) {
+            translate([x, y, 0])
+                cylinder(h=10, r=2, $fn=16);
+        }
+    }
+- tapOn:
+    id: "toolbar_script_button"
+# UI should remain responsive
+- extendedWaitUntil:
+    visible:
+      id: "viewport_view"
+    timeout: 15000
+- tapOn:
+    id: "toolbar_add_button"
+# If we can still tap buttons, the UI didn't freeze
+- assertVisible: "Cube"

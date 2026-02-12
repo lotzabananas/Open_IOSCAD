@@ -1,0 +1,15 @@
+appId: com.openioscad.app
+---
+- launchApp
+- tapOn:
+    id: "toolbar_add_button"
+- assertVisible: "Cube"
+- assertVisible: "Cylinder"
+- assertVisible: "Sphere"
+- tapOn: "Cube"
+- assertVisible:
+    id: "feature_tree_item_0"
+# Verify script was written
+- tapOn:
+    id: "toolbar_script_button"
+- assertVisible: "cube("
