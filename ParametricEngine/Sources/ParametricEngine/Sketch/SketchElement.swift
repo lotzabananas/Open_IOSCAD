@@ -16,12 +16,17 @@ public enum SketchElement: Identifiable, Codable, Sendable, Hashable {
     case rectangle(id: ElementID, origin: Point2D, width: Double, height: Double)
     case circle(id: ElementID, center: Point2D, radius: Double)
     case lineSegment(id: ElementID, start: Point2D, end: Point2D)
+    /// Circular arc defined by center, radius, start angle, and sweep angle (degrees).
+    /// startAngle: 0 = +X, counter-clockwise positive.
+    /// sweepAngle: positive = counter-clockwise.
+    case arc(id: ElementID, center: Point2D, radius: Double, startAngle: Double, sweepAngle: Double)
 
     public var id: ElementID {
         switch self {
         case .rectangle(let id, _, _, _): return id
         case .circle(let id, _, _): return id
         case .lineSegment(let id, _, _): return id
+        case .arc(let id, _, _, _, _): return id
         }
     }
 
@@ -31,11 +36,33 @@ public enum SketchElement: Identifiable, Codable, Sendable, Hashable {
         case .rectangle: return "Rectangle"
         case .circle: return "Circle"
         case .lineSegment: return "Line"
+        case .arc: return "Arc"
         }
     }
-}
 
-/// Placeholder for future constraint solver (Phase 2).
-public enum SketchConstraint: Codable, Sendable, Hashable {
-    // Phase 1: empty. Constraints arrive in Phase 2.
+    /// Start point of the element (for chaining and constraint references).
+    public var startPoint: Point2D? {
+        switch self {
+        case .lineSegment(_, let start, _):
+            return start
+        case .arc(_, let center, let radius, let startAngle, _):
+            let rad = startAngle * .pi / 180
+            return Point2D(x: center.x + radius * cos(rad), y: center.y + radius * sin(rad))
+        default:
+            return nil
+        }
+    }
+
+    /// End point of the element (for chaining and constraint references).
+    public var endPoint: Point2D? {
+        switch self {
+        case .lineSegment(_, _, let end):
+            return end
+        case .arc(_, let center, let radius, let startAngle, let sweepAngle):
+            let rad = (startAngle + sweepAngle) * .pi / 180
+            return Point2D(x: center.x + radius * cos(rad), y: center.y + radius * sin(rad))
+        default:
+            return nil
+        }
+    }
 }

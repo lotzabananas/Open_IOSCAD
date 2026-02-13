@@ -37,6 +37,26 @@ struct SketchCanvasView: View {
             VStack {
                 SketchToolbar(sketchVM: sketchVM, onFinish: finishSketch, onCancel: cancelSketch)
                 Spacer()
+
+                // DOF indicator (when constraints exist)
+                if !sketchVM.constraints.isEmpty {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(sketchVM.solverDOF == 0 ? Color.green : Color.orange)
+                            .frame(width: 8, height: 8)
+                        Text(sketchVM.solverDOF == 0
+                             ? "Fully constrained"
+                             : "DOF: \(sketchVM.solverDOF)")
+                            .font(.caption2)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(8)
+                    .padding(.bottom, 16)
+                    .accessibilityIdentifier("sketch_dof_indicator")
+                }
             }
         }
         .accessibilityIdentifier("sketch_canvas")
@@ -57,13 +77,14 @@ struct SketchCanvasView: View {
             return
         }
 
-        // Create the sketch feature and remember its ID
+        // Create the sketch feature with constraints and remember its ID
         let sketchID = FeatureID()
         let sketch = SketchFeature(
             id: sketchID,
             name: "Sketch",
             plane: viewModel.sketchPlane,
-            elements: sketchVM.elements
+            elements: sketchVM.elements,
+            constraints: sketchVM.constraints
         )
         viewModel.featureTree.append(.sketch(sketch))
         lastSketchID = sketchID
@@ -192,6 +213,26 @@ struct SketchElementShape: View {
                         x: center.x + CGFloat(end.x) * scale,
                         y: center.y - CGFloat(end.y) * scale
                     ))
+                }
+                .stroke(Color.blue, lineWidth: 2)
+
+            case .arc(_, let arcCenter, let radius, let startAngle, let sweepAngle):
+                Path { path in
+                    let cx = center.x + CGFloat(arcCenter.x) * scale
+                    let cy = center.y - CGFloat(arcCenter.y) * scale
+                    let r = CGFloat(radius) * scale
+                    // SwiftUI angles: 0 = right, clockwise positive
+                    // Our angles: 0 = right, counter-clockwise positive
+                    // Convert by negating and using SwiftUI's clockwise convention
+                    let sa = Angle(degrees: -startAngle)
+                    let ea = Angle(degrees: -(startAngle + sweepAngle))
+                    path.addArc(
+                        center: CGPoint(x: cx, y: cy),
+                        radius: r,
+                        startAngle: sa,
+                        endAngle: ea,
+                        clockwise: sweepAngle > 0
+                    )
                 }
                 .stroke(Color.blue, lineWidth: 2)
             }

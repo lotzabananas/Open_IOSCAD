@@ -13,6 +13,9 @@ import GeometryKernel
 public final class FeatureEvaluator {
     private let kernel: GeometryKernel
 
+    /// Accumulated mesh at the time of the last evaluation, used for face-based plane queries.
+    private var accumulatedMeshForFace: TriangleMesh?
+
     public init(kernel: GeometryKernel = GeometryKernel()) {
         self.kernel = kernel
     }
@@ -37,7 +40,12 @@ public final class FeatureEvaluator {
 
         // ── Pass 1: produce per-feature meshes ──
 
+        // Track accumulated mesh for face-based plane queries
+        var runningMesh = TriangleMesh()
+
         for feature in tree.activeFeatures {
+            // Make the current accumulated mesh available for face-based sketch planes
+            accumulatedMeshForFace = runningMesh
             switch feature {
             case .sketch(let sketch):
                 let result = evaluateSketch(sketch)
@@ -139,6 +147,23 @@ public final class FeatureEvaluator {
                 featureMeshes[boolean.id] = result
                 meshOperations[boolean.id] = .additive
             }
+
+            // Update running mesh for face-based plane resolution
+            if let mesh = featureMeshes[feature.id], !mesh.isEmpty {
+                let op = meshOperations[feature.id] ?? .additive
+                switch op {
+                case .additive:
+                    if runningMesh.isEmpty {
+                        runningMesh = mesh
+                    } else {
+                        runningMesh = CSGOperations.perform(.union, on: [runningMesh, mesh])
+                    }
+                case .subtractive:
+                    if !runningMesh.isEmpty {
+                        runningMesh = CSGOperations.perform(.difference, on: [runningMesh, mesh])
+                    }
+                }
+            }
         }
 
         // ── Pass 2: combine meshes in tree order ──
@@ -182,7 +207,18 @@ public final class FeatureEvaluator {
     }
 
     private func evaluateSketch(_ sketch: SketchFeature) -> Result<Polygon2D, ProfileError> {
-        ProfileExtractor.extractProfile(from: sketch.elements)
+        // Phase 2: solve constraints before extracting the profile
+        let elements: [SketchElement]
+        if !sketch.constraints.isEmpty {
+            let result = SketchSolver.solve(
+                elements: sketch.elements,
+                constraints: sketch.constraints
+            )
+            elements = result.elements
+        } else {
+            elements = sketch.elements
+        }
+        return ProfileExtractor.extractProfile(from: elements)
     }
 
     private func extrudePolygon(_ polygon: Polygon2D, depth: Double, plane: SketchPlane?) -> TriangleMesh {
@@ -342,9 +378,13 @@ public final class FeatureEvaluator {
                 SIMD4<Float>(0, 0, Float(distance), 1)
             )
 
-        case .faceOf:
-            // Face-based planes need face normal/position from the mesh.
-            // For Phase 1, fall back to identity (XY).
+        case .faceOf(_, let faceIndex):
+            // Phase 2: extract face normal and centroid from mesh to build plane transform.
+            if let featureMesh = accumulatedMeshForFace,
+               let transform = FaceQuery.faceTransform(of: featureMesh, faceIndex: faceIndex) {
+                return transform
+            }
+            // Fallback to identity if face data is unavailable.
             return matrix_identity_float4x4
         }
     }

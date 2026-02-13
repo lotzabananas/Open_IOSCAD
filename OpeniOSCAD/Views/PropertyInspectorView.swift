@@ -74,6 +74,8 @@ private struct SketchInspector: View {
             ForEach(Array(sketch.elements.enumerated()), id: \.element.id) { index, element in
                 elementEditor(element, at: index)
             }
+
+            ConstraintListView(constraints: sketch.constraints)
         }
     }
 
@@ -150,6 +152,62 @@ private struct SketchInspector: View {
                     var updated = sketch
                     updated.elements[index] = .lineSegment(id: id, start: start, end: Point2D(x: end.x, y: newVal))
                     onUpdate(updated)
+                }
+            }
+
+        case .arc(let id, let center, let radius, let startAngle, let sweepAngle):
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Arc")
+                    .font(.caption.bold())
+                NumericField("Radius", value: radius, identifier: "sketch_arc_radius") { newVal in
+                    var updated = sketch
+                    updated.elements[index] = .arc(id: id, center: center, radius: newVal, startAngle: startAngle, sweepAngle: sweepAngle)
+                    onUpdate(updated)
+                }
+                NumericField("Start", value: startAngle, identifier: "sketch_arc_start") { newVal in
+                    var updated = sketch
+                    updated.elements[index] = .arc(id: id, center: center, radius: radius, startAngle: newVal, sweepAngle: sweepAngle)
+                    onUpdate(updated)
+                }
+                NumericField("Sweep", value: sweepAngle, identifier: "sketch_arc_sweep") { newVal in
+                    var updated = sketch
+                    updated.elements[index] = .arc(id: id, center: center, radius: radius, startAngle: startAngle, sweepAngle: newVal)
+                    onUpdate(updated)
+                }
+                NumericField("Center X", value: center.x, identifier: "sketch_arc_cx") { newVal in
+                    var updated = sketch
+                    updated.elements[index] = .arc(id: id, center: Point2D(x: newVal, y: center.y), radius: radius, startAngle: startAngle, sweepAngle: sweepAngle)
+                    onUpdate(updated)
+                }
+                NumericField("Center Y", value: center.y, identifier: "sketch_arc_cy") { newVal in
+                    var updated = sketch
+                    updated.elements[index] = .arc(id: id, center: Point2D(x: center.x, y: newVal), radius: radius, startAngle: startAngle, sweepAngle: sweepAngle)
+                    onUpdate(updated)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Constraint List (in Sketch Inspector)
+
+private struct ConstraintListView: View {
+    let constraints: [SketchConstraint]
+
+    var body: some View {
+        if !constraints.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Constraints")
+                    .font(.caption.bold())
+                ForEach(constraints) { constraint in
+                    HStack {
+                        Image(systemName: constraint.isDimensional ? "ruler" : "link")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                        Text(constraint.typeName)
+                            .font(.caption)
+                    }
+                    .accessibilityIdentifier("constraint_\(constraint.id.uuidString.prefix(8))")
                 }
             }
         }
