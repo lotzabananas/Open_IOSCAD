@@ -1,8 +1,14 @@
 import Foundation
 import GeometryKernel
 
-/// Evaluates a FeatureTree top-to-bottom, producing a GeometryOp tree
-/// that GeometryKernel can evaluate to a TriangleMesh.
+/// Evaluates a FeatureTree top-to-bottom, producing a TriangleMesh.
+///
+/// Two-pass design:
+///   Pass 1 — Walk features in tree order. Sketches produce profiles.
+///            Extrudes produce meshes. Transforms modify their target's mesh.
+///            Booleans combine their targets into a single mesh.
+///   Pass 2 — Combine surviving per-feature meshes in tree order using
+///            each feature's operation (additive → union, subtractive → difference).
 public final class FeatureEvaluator {
     private let kernel: GeometryKernel
 
@@ -23,9 +29,12 @@ public final class FeatureEvaluator {
 
     /// Evaluate the full feature tree and return a final TriangleMesh.
     public func evaluate(_ tree: FeatureTree) -> EvaluationResult {
-        var accumulatedMesh = TriangleMesh()
         var sketchProfiles: [FeatureID: Polygon2D] = [:]
+        var featureMeshes: [FeatureID: TriangleMesh] = [:]
+        var meshOperations: [FeatureID: MeshOperation] = [:]
         var errors: [EvaluationError] = []
+
+        // ── Pass 1: produce per-feature meshes ──
 
         for feature in tree.activeFeatures {
             switch feature {
@@ -46,7 +55,7 @@ public final class FeatureEvaluator {
                     errors.append(.missingReference(
                         featureName: extrude.name,
                         referencedID: extrude.sketchID,
-                        detail: "Referenced sketch not found"
+                        detail: "Referenced sketch not found or suppressed"
                     ))
                     continue
                 }
@@ -57,26 +66,86 @@ public final class FeatureEvaluator {
                     plane: sketchPlane(for: extrude.sketchID, in: tree)
                 )
 
-                switch extrude.operation {
-                case .additive:
-                    if accumulatedMesh.isEmpty {
-                        accumulatedMesh = extrudedMesh
-                    } else {
-                        accumulatedMesh = CSGOperations.perform(.union, on: [accumulatedMesh, extrudedMesh])
-                    }
-                case .subtractive:
-                    if !accumulatedMesh.isEmpty && !extrudedMesh.isEmpty {
-                        accumulatedMesh = CSGOperations.perform(.difference, on: [accumulatedMesh, extrudedMesh])
-                    }
+                featureMeshes[extrude.id] = extrudedMesh
+                meshOperations[extrude.id] = extrude.operation == .additive
+                    ? .additive : .subtractive
+
+            case .transform(let transform):
+                guard let targetMesh = featureMeshes[transform.targetID] else {
+                    errors.append(.missingReference(
+                        featureName: transform.name,
+                        referencedID: transform.targetID,
+                        detail: "Transform target not found or has no geometry"
+                    ))
+                    continue
                 }
 
-            case .boolean:
-                // Boolean feature combines bodies — not common in Phase 1 simple workflow
-                break
+                var transformedMesh = targetMesh
+                let matrix = buildTransformMatrix(transform)
+                transformedMesh.apply(transform: matrix)
 
-            case .transform:
-                // Transform feature — applied to accumulated geometry
-                break
+                if requiresWindingFlip(transform) {
+                    transformedMesh.flipWinding()
+                }
+
+                // Replace the target's mesh with the transformed version.
+                // The target keeps its original operation (additive/subtractive).
+                featureMeshes[transform.targetID] = transformedMesh
+
+            case .boolean(let boolean):
+                let targetMeshes: [TriangleMesh] = boolean.targetIDs.compactMap {
+                    featureMeshes[$0]
+                }
+
+                guard targetMeshes.count >= 2 else {
+                    errors.append(.invalidParameter(
+                        featureName: boolean.name,
+                        parameterName: "targetIDs",
+                        detail: "Boolean requires at least 2 targets with geometry, found \(targetMeshes.count)"
+                    ))
+                    continue
+                }
+
+                let boolType = kernelBooleanType(boolean.booleanType)
+                let result = CSGOperations.perform(boolType, on: targetMeshes)
+
+                // Remove the consumed targets and store the boolean result
+                for id in boolean.targetIDs {
+                    featureMeshes.removeValue(forKey: id)
+                    meshOperations.removeValue(forKey: id)
+                }
+
+                featureMeshes[boolean.id] = result
+                meshOperations[boolean.id] = .additive
+            }
+        }
+
+        // ── Pass 2: combine meshes in tree order ──
+
+        var accumulatedMesh = TriangleMesh()
+
+        // Walk the full active feature list to preserve ordering.
+        for feature in tree.activeFeatures {
+            guard let mesh = featureMeshes[feature.id],
+                  !mesh.isEmpty else { continue }
+
+            let operation = meshOperations[feature.id] ?? .additive
+
+            switch operation {
+            case .additive:
+                if accumulatedMesh.isEmpty {
+                    accumulatedMesh = mesh
+                } else {
+                    accumulatedMesh = CSGOperations.perform(
+                        .union, on: [accumulatedMesh, mesh]
+                    )
+                }
+            case .subtractive:
+                if !accumulatedMesh.isEmpty {
+                    accumulatedMesh = CSGOperations.perform(
+                        .difference, on: [accumulatedMesh, mesh]
+                    )
+                }
             }
         }
 
@@ -84,6 +153,12 @@ public final class FeatureEvaluator {
     }
 
     // MARK: - Private
+
+    /// How a feature's mesh participates in the final combination.
+    private enum MeshOperation {
+        case additive
+        case subtractive
+    }
 
     private func evaluateSketch(_ sketch: SketchFeature) -> Result<Polygon2D, ProfileError> {
         ProfileExtractor.extractProfile(from: sketch.elements)
@@ -118,6 +193,76 @@ public final class FeatureEvaluator {
         }
         return sketch.plane
     }
+
+    // MARK: - Transform helpers
+
+    private func buildTransformMatrix(_ transform: TransformFeature) -> simd_float4x4 {
+        let type: TransformType
+        switch transform.transformType {
+        case .translate: type = .translate
+        case .rotate:    type = .rotate
+        case .scale:     type = .scale
+        case .mirror:    type = .mirror
+        }
+
+        let params: TransformParams
+        switch transform.transformType {
+        case .translate, .scale, .mirror:
+            params = TransformParams(
+                vector: SIMD3<Float>(
+                    Float(transform.vectorX),
+                    Float(transform.vectorY),
+                    Float(transform.vectorZ)
+                )
+            )
+        case .rotate:
+            params = TransformParams(
+                vector: SIMD3<Float>(
+                    Float(transform.vectorX),
+                    Float(transform.vectorY),
+                    Float(transform.vectorZ)
+                ),
+                angle: Float(transform.angle),
+                axis: SIMD3<Float>(
+                    Float(transform.axisX),
+                    Float(transform.axisY),
+                    Float(transform.axisZ)
+                )
+            )
+        }
+
+        return TransformOperations.matrix(for: type, params: params)
+    }
+
+    private func requiresWindingFlip(_ transform: TransformFeature) -> Bool {
+        let type: TransformType
+        switch transform.transformType {
+        case .translate: type = .translate
+        case .rotate:    type = .rotate
+        case .scale:     type = .scale
+        case .mirror:    type = .mirror
+        }
+
+        let params = TransformParams(
+            vector: SIMD3<Float>(
+                Float(transform.vectorX),
+                Float(transform.vectorY),
+                Float(transform.vectorZ)
+            )
+        )
+
+        return TransformOperations.requiresWindingFlip(type: type, params: params)
+    }
+
+    private func kernelBooleanType(_ op: BooleanFeature.BooleanOp) -> BooleanType {
+        switch op {
+        case .union:        return .union
+        case .intersection: return .intersection
+        case .difference:   return .difference
+        }
+    }
+
+    // MARK: - Plane transforms
 
     /// Build a 4x4 transform matrix to position extruded geometry
     /// according to the sketch plane.

@@ -33,6 +33,7 @@ public enum PolyhedronGenerator {
 
         for face in faceList {
             guard face.count >= 3 else { continue }
+            guard face.allSatisfy({ $0 >= 0 && $0 < points.count }) else { continue }
 
             // Compute the face normal from the first three vertices.
             let p0 = points[face[0]]

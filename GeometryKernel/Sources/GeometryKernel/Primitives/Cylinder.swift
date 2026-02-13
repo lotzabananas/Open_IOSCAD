@@ -23,7 +23,7 @@ public enum CylinderGenerator {
         let r1 = params.radius1 ?? params.radius ?? 1.0  // bottom radius
         let r2 = params.radius2 ?? params.radius ?? 1.0  // top radius
         let h  = params.height ?? 1.0
-        let maxR = max(r1, r2, Float.leastNonzeroMagnitude)
+        let maxR = max(r1, r2, 0.001)
         let n  = params.resolvedSegments(forRadius: maxR)
 
         let zBottom: Float

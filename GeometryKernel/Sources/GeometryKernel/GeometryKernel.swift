@@ -149,11 +149,13 @@ public final class GeometryKernel {
                 return extractPolygon(from: first)
             }
             return Polygon2D()
-        case .transform(_, let tParams, let child):
+        case .transform(let type, let tParams, let child):
             var poly = extractPolygon(from: child)
+            let matrix = TransformOperations.matrix(for: type, params: tParams)
             for i in poly.points.indices {
-                poly.points[i].x += tParams.vector.x
-                poly.points[i].y += tParams.vector.y
+                let p = poly.points[i]
+                let v4 = matrix * SIMD4<Float>(p.x, p.y, 0, 1)
+                poly.points[i] = SIMD2<Float>(v4.x, v4.y)
             }
             return poly
         default:
