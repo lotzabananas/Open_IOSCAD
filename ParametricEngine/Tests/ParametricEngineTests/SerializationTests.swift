@@ -98,6 +98,71 @@ final class SerializationTests: XCTestCase {
         XCTAssertEqual(decoded.count, 1)
     }
 
+    func testRevolveFeatureRoundTrip() throws {
+        let sketchID = FeatureID()
+        let revolve = RevolveFeature(
+            name: "Revolve 1",
+            sketchID: sketchID,
+            angle: 180.0,
+            operation: .additive
+        )
+        let anyFeature = AnyFeature.revolve(revolve)
+
+        let data = try JSONEncoder().encode(anyFeature)
+        let decoded = try JSONDecoder().decode(AnyFeature.self, from: data)
+
+        if case .revolve(let decodedRevolve) = decoded {
+            XCTAssertEqual(decodedRevolve.sketchID, sketchID)
+            XCTAssertEqual(decodedRevolve.angle, 180.0)
+            XCTAssertEqual(decodedRevolve.operation, .additive)
+            XCTAssertEqual(decodedRevolve.name, "Revolve 1")
+        } else {
+            XCTFail("Expected revolve feature")
+        }
+    }
+
+    func testSubtractiveRevolveFeatureRoundTrip() throws {
+        let sketchID = FeatureID()
+        let revolve = RevolveFeature(
+            name: "Revolve Cut",
+            sketchID: sketchID,
+            angle: 90.0,
+            operation: .subtractive
+        )
+        let anyFeature = AnyFeature.revolve(revolve)
+
+        let data = try JSONEncoder().encode(anyFeature)
+        let decoded = try JSONDecoder().decode(AnyFeature.self, from: data)
+
+        if case .revolve(let decodedRevolve) = decoded {
+            XCTAssertEqual(decodedRevolve.operation, .subtractive)
+            XCTAssertEqual(decodedRevolve.angle, 90.0)
+        } else {
+            XCTFail("Expected revolve feature")
+        }
+    }
+
+    func testFeatureTreeWithRevolveRoundTrip() throws {
+        var tree = FeatureTree()
+        let sketch = SketchFeature.circleOnXY(radius: 10, name: "S1")
+        let revolve = RevolveFeature(
+            name: "R1",
+            sketchID: sketch.id,
+            angle: 360.0,
+            operation: .additive
+        )
+
+        tree.append(.sketch(sketch))
+        tree.append(.revolve(revolve))
+
+        let data = try FeatureSerialization.encode(tree)
+        let decoded = try FeatureSerialization.decode(from: data)
+
+        XCTAssertEqual(decoded.count, 2)
+        XCTAssertEqual(decoded.features[0].kind, .sketch)
+        XCTAssertEqual(decoded.features[1].kind, .revolve)
+    }
+
     func testBooleanFeatureRoundTrip() throws {
         let boolean = BooleanFeature(
             name: "Union 1",

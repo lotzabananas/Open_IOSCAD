@@ -7,9 +7,11 @@ struct ContentView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             // 3D Viewport (always visible)
-            ViewportView(mesh: $viewModel.currentMesh)
-                .accessibilityIdentifier("viewport_view")
-                .edgesIgnoringSafeArea(.all)
+            ViewportView(mesh: $viewModel.currentMesh) { faceIndex in
+                viewModel.selectFace(at: faceIndex)
+            }
+            .accessibilityIdentifier("viewport_view")
+            .edgesIgnoringSafeArea(.all)
 
             // Sketch mode overlay
             if viewModel.isInSketchMode {

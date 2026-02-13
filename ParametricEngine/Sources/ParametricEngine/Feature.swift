@@ -21,6 +21,7 @@ public protocol Feature: Identifiable, Codable, Sendable {
 public enum FeatureKind: String, Codable, Sendable, CaseIterable {
     case sketch
     case extrude
+    case revolve
     case boolean
     case transform
 }
@@ -30,6 +31,7 @@ public enum FeatureKind: String, Codable, Sendable, CaseIterable {
 public enum AnyFeature: Codable, Sendable, Identifiable {
     case sketch(SketchFeature)
     case extrude(ExtrudeFeature)
+    case revolve(RevolveFeature)
     case boolean(BooleanFeature)
     case transform(TransformFeature)
 
@@ -37,6 +39,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
         switch self {
         case .sketch(let f): return f.id
         case .extrude(let f): return f.id
+        case .revolve(let f): return f.id
         case .boolean(let f): return f.id
         case .transform(let f): return f.id
         }
@@ -47,6 +50,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             switch self {
             case .sketch(let f): return f.name
             case .extrude(let f): return f.name
+            case .revolve(let f): return f.name
             case .boolean(let f): return f.name
             case .transform(let f): return f.name
             }
@@ -55,6 +59,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             switch self {
             case .sketch(var f): f.name = newValue; self = .sketch(f)
             case .extrude(var f): f.name = newValue; self = .extrude(f)
+            case .revolve(var f): f.name = newValue; self = .revolve(f)
             case .boolean(var f): f.name = newValue; self = .boolean(f)
             case .transform(var f): f.name = newValue; self = .transform(f)
             }
@@ -66,6 +71,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             switch self {
             case .sketch(let f): return f.isSuppressed
             case .extrude(let f): return f.isSuppressed
+            case .revolve(let f): return f.isSuppressed
             case .boolean(let f): return f.isSuppressed
             case .transform(let f): return f.isSuppressed
             }
@@ -74,6 +80,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             switch self {
             case .sketch(var f): f.isSuppressed = newValue; self = .sketch(f)
             case .extrude(var f): f.isSuppressed = newValue; self = .extrude(f)
+            case .revolve(var f): f.isSuppressed = newValue; self = .revolve(f)
             case .boolean(var f): f.isSuppressed = newValue; self = .boolean(f)
             case .transform(var f): f.isSuppressed = newValue; self = .transform(f)
             }
@@ -84,6 +91,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
         switch self {
         case .sketch: return .sketch
         case .extrude: return .extrude
+        case .revolve: return .revolve
         case .boolean: return .boolean
         case .transform: return .transform
         }
@@ -103,6 +111,8 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             self = .sketch(try SketchFeature(from: decoder))
         case .extrude:
             self = .extrude(try ExtrudeFeature(from: decoder))
+        case .revolve:
+            self = .revolve(try RevolveFeature(from: decoder))
         case .boolean:
             self = .boolean(try BooleanFeature(from: decoder))
         case .transform:
@@ -118,6 +128,9 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             try f.encode(to: encoder)
         case .extrude(let f):
             try container.encode(FeatureKind.extrude, forKey: .type)
+            try f.encode(to: encoder)
+        case .revolve(let f):
+            try container.encode(FeatureKind.revolve, forKey: .type)
             try f.encode(to: encoder)
         case .boolean(let f):
             try container.encode(FeatureKind.boolean, forKey: .type)

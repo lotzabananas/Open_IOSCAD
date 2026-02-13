@@ -141,6 +141,7 @@ struct FeatureRow: View {
         switch f.kind {
         case .sketch: return "pencil.and.outline"
         case .extrude: return "arrow.up.to.line"
+        case .revolve: return "arrow.triangle.2.circlepath"
         case .boolean: return "square.on.square"
         case .transform: return "arrow.up.and.down.and.arrow.left.and.right"
         }

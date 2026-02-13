@@ -5,7 +5,8 @@ import GeometryKernel
 ///
 /// Two-pass design:
 ///   Pass 1 — Walk features in tree order. Sketches produce profiles.
-///            Extrudes produce meshes. Transforms modify their target's mesh.
+///            Extrudes produce meshes. Revolves produce meshes.
+///            Transforms modify their target's mesh.
 ///            Booleans combine their targets into a single mesh.
 ///   Pass 2 — Combine surviving per-feature meshes in tree order using
 ///            each feature's operation (additive → union, subtractive → difference).
@@ -68,6 +69,26 @@ public final class FeatureEvaluator {
 
                 featureMeshes[extrude.id] = extrudedMesh
                 meshOperations[extrude.id] = extrude.operation == .additive
+                    ? .additive : .subtractive
+
+            case .revolve(let revolve):
+                guard let polygon = sketchProfiles[revolve.sketchID] else {
+                    errors.append(.missingReference(
+                        featureName: revolve.name,
+                        referencedID: revolve.sketchID,
+                        detail: "Referenced sketch not found or suppressed"
+                    ))
+                    continue
+                }
+
+                let revolvedMesh = revolvePolygon(
+                    polygon,
+                    angle: revolve.angle,
+                    plane: sketchPlane(for: revolve.sketchID, in: tree)
+                )
+
+                featureMeshes[revolve.id] = revolvedMesh
+                meshOperations[revolve.id] = revolve.operation == .additive
                     ? .additive : .subtractive
 
             case .transform(let transform):
@@ -170,6 +191,24 @@ public final class FeatureEvaluator {
         let extrudeOp = GeometryOp.extrude(.linear, params, profileOp)
 
         var mesh = kernel.evaluate(extrudeOp)
+
+        // Apply plane transform if not on XY
+        if let plane = plane {
+            let transform = planeTransform(plane)
+            if transform != matrix_identity_float4x4 {
+                mesh.apply(transform: transform)
+            }
+        }
+
+        return mesh
+    }
+
+    private func revolvePolygon(_ polygon: Polygon2D, angle: Double, plane: SketchPlane?) -> TriangleMesh {
+        let params = ExtrudeParams(angle: Float(angle))
+        let profileOp = polygonToOp(polygon)
+        let revolveOp = GeometryOp.extrude(.rotate, params, profileOp)
+
+        var mesh = kernel.evaluate(revolveOp)
 
         // Apply plane transform if not on XY
         if let plane = plane {

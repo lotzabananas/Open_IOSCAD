@@ -36,6 +36,10 @@ struct PropertyInspectorView: View {
                         ExtrudeInspector(extrude: extrude, onUpdate: { updated in
                             onUpdate(.extrude(updated))
                         })
+                    case .revolve(let revolve):
+                        RevolveInspector(revolve: revolve, onUpdate: { updated in
+                            onUpdate(.revolve(updated))
+                        })
                     case .boolean(let boolean):
                         BooleanInspector(boolean: boolean, onUpdate: { updated in
                             onUpdate(.boolean(updated))
@@ -183,6 +187,41 @@ private struct ExtrudeInspector: View {
             }
             .pickerStyle(.segmented)
             .accessibilityIdentifier("extrude_operation_picker")
+        }
+    }
+}
+
+// MARK: - Revolve Inspector
+
+private struct RevolveInspector: View {
+    let revolve: RevolveFeature
+    let onUpdate: (RevolveFeature) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(revolve.operation == .additive ? "Additive" : "Subtractive")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            NumericField("Angle", value: revolve.angle, identifier: "revolve_angle") { newVal in
+                var updated = revolve
+                updated.angle = max(0.1, min(360.0, newVal))
+                onUpdate(updated)
+            }
+
+            Picker("Operation", selection: Binding(
+                get: { revolve.operation },
+                set: { newOp in
+                    var updated = revolve
+                    updated.operation = newOp
+                    onUpdate(updated)
+                }
+            )) {
+                Text("Additive").tag(RevolveFeature.Operation.additive)
+                Text("Subtractive").tag(RevolveFeature.Operation.subtractive)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("revolve_operation_picker")
         }
     }
 }
