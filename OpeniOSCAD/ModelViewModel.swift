@@ -38,6 +38,7 @@ final class ModelViewModel: ObservableObject {
     private var sketchCounter = 0
     private var extrudeCounter = 0
     private var cutCounter = 0
+    private var revolveCounter = 0
 
     init() {
         pushUndoSnapshot()
@@ -66,6 +67,9 @@ final class ModelViewModel: ObservableObject {
         case .extrude(let e):
             let opLabel = e.operation == .additive ? "Add" : "Cut"
             return "\(opLabel) \(String(format: "%.1f", e.depth))mm"
+        case .revolve(let r):
+            let opLabel = r.operation == .additive ? "Add" : "Cut"
+            return "\(opLabel) \(String(format: "%.0f", r.angle))\u{00B0}"
         case .boolean(let b):
             return b.booleanType.rawValue.capitalized
         case .transform(let t):
@@ -118,6 +122,85 @@ final class ModelViewModel: ObservableObject {
 
         featureTree.append(.sketch(sketch))
         featureTree.append(.extrude(extrude))
+
+        showAddMenu = false
+        pushUndoSnapshot()
+        reevaluate()
+    }
+
+    /// "Add Sphere" — creates a semicircle sketch on XY + 360° revolve.
+    func addSphere(radius: Double = 10) {
+        sketchCounter += 1
+        revolveCounter += 1
+
+        // Create a semicircle profile: half-circle in +X half-plane
+        // Points along an arc from (0, -r) to (0, r) through (r, 0)
+        let segments = 24
+        var points: [Point2D] = []
+        for i in 0...segments {
+            let angle = Double(i) / Double(segments) * Double.pi - Double.pi / 2
+            let x = radius * cos(angle)
+            let y = radius * sin(angle)
+            points.append(Point2D(x: x, y: y))
+        }
+        // Close along the Y axis
+        points.append(Point2D(x: 0, y: -radius))
+
+        // Build line segments forming the semicircle profile
+        var elements: [SketchElement] = []
+        for i in 0..<(points.count - 1) {
+            elements.append(.lineSegment(
+                id: ElementID(),
+                start: points[i],
+                end: points[i + 1]
+            ))
+        }
+
+        let sketch = SketchFeature(
+            name: "Sketch \(sketchCounter)",
+            plane: .xy,
+            elements: elements
+        )
+        let revolve = RevolveFeature(
+            name: "Revolve \(revolveCounter)",
+            sketchID: sketch.id,
+            angle: 360.0,
+            operation: .additive
+        )
+
+        featureTree.append(.sketch(sketch))
+        featureTree.append(.revolve(revolve))
+
+        showAddMenu = false
+        pushUndoSnapshot()
+        reevaluate()
+    }
+
+    /// "Add Torus" — creates an offset circle sketch + 360° revolve.
+    func addTorus(majorRadius: Double = 15, minorRadius: Double = 5) {
+        sketchCounter += 1
+        revolveCounter += 1
+
+        // Circle profile offset from Y axis by majorRadius
+        let element = SketchElement.circle(
+            id: ElementID(),
+            center: Point2D(x: majorRadius, y: 0),
+            radius: minorRadius
+        )
+        let sketch = SketchFeature(
+            name: "Sketch \(sketchCounter)",
+            plane: .xy,
+            elements: [element]
+        )
+        let revolve = RevolveFeature(
+            name: "Revolve \(revolveCounter)",
+            sketchID: sketch.id,
+            angle: 360.0,
+            operation: .additive
+        )
+
+        featureTree.append(.sketch(sketch))
+        featureTree.append(.revolve(revolve))
 
         showAddMenu = false
         pushUndoSnapshot()
@@ -211,11 +294,14 @@ final class ModelViewModel: ObservableObject {
     func deleteFeature(at index: Int) {
         guard let feature = featureTree.feature(at: index) else { return }
 
-        // If deleting a sketch, also delete extrudes that reference it
+        // If deleting a sketch, also delete extrudes/revolves that reference it
         if case .sketch(let sketch) = feature {
             let dependents = featureTree.features.enumerated().compactMap { (i, f) -> Int? in
-                if case .extrude(let e) = f, e.sketchID == sketch.id { return i }
-                return nil
+                switch f {
+                case .extrude(let e) where e.sketchID == sketch.id: return i
+                case .revolve(let r) where r.sketchID == sketch.id: return i
+                default: return nil
+                }
             }
             // Remove in reverse order to preserve indices
             for depIdx in dependents.reversed() {
@@ -368,6 +454,7 @@ final class ModelViewModel: ObservableObject {
             if case .extrude(let e) = $0, e.operation == .subtractive { return true }
             return false
         }.count
+        revolveCounter = featureTree.features.filter { $0.kind == .revolve }.count
     }
 
     // MARK: - Face/Edge Selection

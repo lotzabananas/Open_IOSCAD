@@ -543,6 +543,153 @@ final class EvaluatorTests: XCTestCase {
         XCTAssertEqual(size.y, 20, accuracy: 1.0)
     }
 
+    // MARK: - Revolve feature
+
+    func testCircleRevolveProducesTorus() {
+        var tree = FeatureTree()
+
+        // Circle profile offset from Y axis
+        let element = SketchElement.circle(
+            id: ElementID(),
+            center: Point2D(x: 15, y: 0),
+            radius: 5
+        )
+        let sketch = SketchFeature(
+            name: "S1",
+            plane: .xy,
+            elements: [element]
+        )
+        let revolve = RevolveFeature(
+            name: "R1",
+            sketchID: sketch.id,
+            angle: 360.0,
+            operation: .additive
+        )
+
+        tree.append(.sketch(sketch))
+        tree.append(.revolve(revolve))
+
+        let result = evaluator.evaluate(tree)
+        XCTAssertFalse(result.mesh.isEmpty)
+        XCTAssertTrue(result.errors.isEmpty)
+        XCTAssertGreaterThan(result.mesh.triangleCount, 0)
+    }
+
+    func testRectangleRevolveProducesGeometry() {
+        var tree = FeatureTree()
+
+        // Rectangle profile offset from Y axis
+        let element = SketchElement.rectangle(
+            id: ElementID(),
+            origin: Point2D(x: 10, y: -5),
+            width: 5,
+            height: 10
+        )
+        let sketch = SketchFeature(
+            name: "S1",
+            plane: .xy,
+            elements: [element]
+        )
+        let revolve = RevolveFeature(
+            name: "R1",
+            sketchID: sketch.id,
+            angle: 360.0,
+            operation: .additive
+        )
+
+        tree.append(.sketch(sketch))
+        tree.append(.revolve(revolve))
+
+        let result = evaluator.evaluate(tree)
+        XCTAssertFalse(result.mesh.isEmpty)
+        XCTAssertTrue(result.errors.isEmpty)
+    }
+
+    func testPartialRevolveAngle() {
+        var tree = FeatureTree()
+
+        let element = SketchElement.rectangle(
+            id: ElementID(),
+            origin: Point2D(x: 10, y: -5),
+            width: 5,
+            height: 10
+        )
+        let sketch = SketchFeature(
+            name: "S1",
+            plane: .xy,
+            elements: [element]
+        )
+        // Only revolve 90 degrees
+        let revolve = RevolveFeature(
+            name: "R1",
+            sketchID: sketch.id,
+            angle: 90.0,
+            operation: .additive
+        )
+
+        tree.append(.sketch(sketch))
+        tree.append(.revolve(revolve))
+
+        let result = evaluator.evaluate(tree)
+        XCTAssertFalse(result.mesh.isEmpty)
+        XCTAssertTrue(result.errors.isEmpty)
+    }
+
+    func testSubtractiveRevolve() {
+        var tree = FeatureTree()
+
+        // Base box
+        let boxSketch = SketchFeature.rectangleOnXY(width: 30, depth: 30, name: "S1")
+        let boxExtrude = ExtrudeFeature(
+            name: "E1", sketchID: boxSketch.id, depth: 30, operation: .additive
+        )
+
+        // Revolve cut
+        let cutElement = SketchElement.rectangle(
+            id: ElementID(),
+            origin: Point2D(x: 5, y: -2),
+            width: 3,
+            height: 4
+        )
+        let cutSketch = SketchFeature(
+            name: "S2",
+            plane: .xy,
+            elements: [cutElement]
+        )
+        let revolveCut = RevolveFeature(
+            name: "R1",
+            sketchID: cutSketch.id,
+            angle: 360.0,
+            operation: .subtractive
+        )
+
+        tree.append(.sketch(boxSketch))
+        tree.append(.extrude(boxExtrude))
+        tree.append(.sketch(cutSketch))
+        tree.append(.revolve(revolveCut))
+
+        let result = evaluator.evaluate(tree)
+        XCTAssertFalse(result.mesh.isEmpty)
+        XCTAssertTrue(result.errors.isEmpty)
+        // Should have more triangles than a plain box due to the revolve cut
+        XCTAssertGreaterThan(result.mesh.triangleCount, 12)
+    }
+
+    func testRevolveMissingSketchProducesError() {
+        var tree = FeatureTree()
+
+        let revolve = RevolveFeature(
+            name: "R1",
+            sketchID: FeatureID(), // Non-existent sketch
+            angle: 360.0,
+            operation: .additive
+        )
+        tree.append(.revolve(revolve))
+
+        let result = evaluator.evaluate(tree)
+        XCTAssertFalse(result.errors.isEmpty)
+    }
+
     // MARK: - Sketch planes
 
     func testExtrudeOnXZPlane() {
