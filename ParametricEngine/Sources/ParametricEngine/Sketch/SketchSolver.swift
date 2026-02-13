@@ -90,6 +90,28 @@ public enum SketchSolver {
             for i in 0..<totalParams {
                 params[i] += delta[i]
             }
+
+            // Clamp radius and dimension parameters to stay positive
+            var offset = 0
+            for element in elements {
+                switch element {
+                case .rectangle:
+                    // width and height must be positive
+                    params[offset + 2] = max(1e-6, params[offset + 2])
+                    params[offset + 3] = max(1e-6, params[offset + 3])
+                    offset += 4
+                case .circle:
+                    // radius must be positive
+                    params[offset + 2] = max(1e-6, params[offset + 2])
+                    offset += 3
+                case .lineSegment:
+                    offset += 4
+                case .arc:
+                    // radius must be positive
+                    params[offset + 2] = max(1e-6, params[offset + 2])
+                    offset += 5
+                }
+            }
         }
 
         let solvedElements = applyParams(params, to: elements)
@@ -377,8 +399,9 @@ public enum SketchSolver {
                     errors.append(0); continue
                 }
                 let dx = x1 - x2, dy = y1 - y2
-                let dist = (dx * dx + dy * dy).squareRoot()
-                errors.append(dist - value)
+                // Use squared distance error to avoid NaN gradient at dist=0
+                let distSq = dx * dx + dy * dy
+                errors.append(distSq - value * value)
 
             case .radius(_, let eid, let value):
                 guard let base = paramOffsets[eid],
@@ -408,7 +431,11 @@ public enum SketchSolver {
                 let dot = dx1 * dx2 + dy1 * dy2
                 let cross = dx1 * dy2 - dy1 * dx2
                 let angleDeg = atan2(cross, dot) * 180 / .pi
-                errors.append(angleDeg - value)
+                // Normalize angle error to [-180, 180] to handle wraparound
+                var err = angleDeg - value
+                while err > 180 { err -= 360 }
+                while err < -180 { err += 360 }
+                errors.append(err)
 
             case .fixedPoint(_, let p, let fx, let fy):
                 guard let (px, py) = resolvePointValues(p, params: params, elements: elements, paramOffsets: paramOffsets)
@@ -582,11 +609,6 @@ public enum SketchSolver {
                 }
             }
 
-            if maxVal < 1e-14 {
-                // Add regularization to avoid singularity
-                aug[col * (n + 1) + col] += 1e-8
-            }
-
             // Swap rows
             if maxRow != col {
                 for j in 0...(n) {
@@ -594,6 +616,11 @@ public enum SketchSolver {
                     aug[col * (n + 1) + j] = aug[maxRow * (n + 1) + j]
                     aug[maxRow * (n + 1) + j] = temp
                 }
+            }
+
+            // Add regularization after swap to avoid singularity
+            if maxVal < 1e-14 {
+                aug[col * (n + 1) + col] += 1e-8
             }
 
             let pivot = aug[col * (n + 1) + col]

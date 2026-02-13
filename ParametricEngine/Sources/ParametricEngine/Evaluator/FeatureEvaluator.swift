@@ -166,36 +166,8 @@ public final class FeatureEvaluator {
             }
         }
 
-        // ── Pass 2: combine meshes in tree order ──
-
-        var accumulatedMesh = TriangleMesh()
-
-        // Walk the full active feature list to preserve ordering.
-        for feature in tree.activeFeatures {
-            guard let mesh = featureMeshes[feature.id],
-                  !mesh.isEmpty else { continue }
-
-            let operation = meshOperations[feature.id] ?? .additive
-
-            switch operation {
-            case .additive:
-                if accumulatedMesh.isEmpty {
-                    accumulatedMesh = mesh
-                } else {
-                    accumulatedMesh = CSGOperations.perform(
-                        .union, on: [accumulatedMesh, mesh]
-                    )
-                }
-            case .subtractive:
-                if !accumulatedMesh.isEmpty {
-                    accumulatedMesh = CSGOperations.perform(
-                        .difference, on: [accumulatedMesh, mesh]
-                    )
-                }
-            }
-        }
-
-        return EvaluationResult(mesh: accumulatedMesh, errors: errors)
+        // runningMesh already has all features combined in tree order from Pass 1.
+        return EvaluationResult(mesh: runningMesh, errors: errors)
     }
 
     // MARK: - Private

@@ -149,8 +149,10 @@ public enum ProfileExtractor {
                     break
                 } else if distance(currentEnd, seg.end) < tolerance {
                     // Reverse: add points from end to start
-                    let reversed = seg.points.reversed()
-                    orderedPoints.append(contentsOf: reversed.dropLast()) // drop end (== currentEnd)
+                    // seg.points excludes start, includes end.
+                    // Reversed: [end, ..., second_point]. First element (end) == currentEnd, drop it.
+                    let reversed = Array(seg.points.reversed())
+                    orderedPoints.append(contentsOf: reversed.dropFirst())
                     orderedPoints.append(seg.start)
                     remaining.remove(at: i)
                     found = true
