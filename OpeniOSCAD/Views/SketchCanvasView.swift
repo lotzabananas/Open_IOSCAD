@@ -12,8 +12,8 @@ struct SketchCanvasView: View {
 
     var body: some View {
         ZStack {
-            // Semi-transparent overlay
-            Color.black.opacity(0.3)
+            // Dark overlay background
+            Color(hex: 0x1A1A1A).opacity(0.75)
                 .edgesIgnoringSafeArea(.all)
 
             // Grid
@@ -42,19 +42,19 @@ struct SketchCanvasView: View {
                 if !sketchVM.constraints.isEmpty {
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(sketchVM.solverDOF == 0 ? Color.green : Color.orange)
+                            .fill(sketchVM.solverDOF == 0 ? AppTheme.Colors.success : AppTheme.Colors.warning)
                             .frame(width: 8, height: 8)
                         Text(sketchVM.solverDOF == 0
                              ? "Fully constrained"
                              : "DOF: \(sketchVM.solverDOF)")
-                            .font(.caption2)
-                            .foregroundColor(.white)
+                            .font(AppTheme.Typography.small)
+                            .foregroundColor(AppTheme.Colors.textPrimary)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(8)
-                    .padding(.bottom, 16)
+                    .padding(.horizontal, AppTheme.Spacing.md)
+                    .padding(.vertical, AppTheme.Spacing.sm)
+                    .background(AppTheme.Colors.surface.opacity(0.9))
+                    .cornerRadius(AppTheme.CornerRadius.md)
+                    .padding(.bottom, AppTheme.Spacing.lg)
                     .accessibilityIdentifier("sketch_dof_indicator")
                 }
             }
@@ -119,20 +119,27 @@ struct SketchGridView: View {
             for i in -gridSize...gridSize {
                 let offset = CGFloat(i) * gridSpacing
 
+                let isMajor = i % 5 == 0
+                let isCenter = i == 0
+
+                let lineColor: Color = isCenter
+                    ? Color(hex: 0x4A9EFF).opacity(0.4)
+                    : (isMajor ? Color(hex: 0x555555).opacity(0.4) : Color(hex: 0x3A3A3A).opacity(0.3))
+                let lineWidth: CGFloat = isCenter ? 1.5 : (isMajor ? 0.7 : 0.4)
+
                 // Vertical
                 var vPath = Path()
                 vPath.move(to: CGPoint(x: centerX + offset, y: 0))
                 vPath.addLine(to: CGPoint(x: centerX + offset, y: size.height))
-                context.stroke(vPath, with: .color(.gray.opacity(i == 0 ? 0.5 : 0.15)), lineWidth: i == 0 ? 1 : 0.5)
+                context.stroke(vPath, with: .color(lineColor), lineWidth: lineWidth)
 
                 // Horizontal
                 var hPath = Path()
                 hPath.move(to: CGPoint(x: 0, y: centerY + offset))
                 hPath.addLine(to: CGPoint(x: size.width, y: centerY + offset))
-                context.stroke(hPath, with: .color(.gray.opacity(i == 0 ? 0.5 : 0.15)), lineWidth: i == 0 ? 1 : 0.5)
+                context.stroke(hPath, with: .color(lineColor), lineWidth: lineWidth)
             }
         }
-        .accessibilityIdentifier("sketch_grid")
         .allowsHitTesting(false)
     }
 }
@@ -187,7 +194,7 @@ struct SketchElementShape: View {
             switch element {
             case .rectangle(_, let origin, let width, let height):
                 Rectangle()
-                    .stroke(Color.blue, lineWidth: 2)
+                    .stroke(AppTheme.Colors.textPrimary, lineWidth: 2)
                     .frame(width: CGFloat(width) * scale, height: CGFloat(height) * scale)
                     .position(
                         x: center.x + CGFloat(origin.x + width / 2) * scale,
@@ -196,7 +203,7 @@ struct SketchElementShape: View {
 
             case .circle(_, let c, let radius):
                 Circle()
-                    .stroke(Color.blue, lineWidth: 2)
+                    .stroke(AppTheme.Colors.textPrimary, lineWidth: 2)
                     .frame(width: CGFloat(radius) * 2 * scale, height: CGFloat(radius) * 2 * scale)
                     .position(
                         x: center.x + CGFloat(c.x) * scale,
@@ -214,16 +221,13 @@ struct SketchElementShape: View {
                         y: center.y - CGFloat(end.y) * scale
                     ))
                 }
-                .stroke(Color.blue, lineWidth: 2)
+                .stroke(AppTheme.Colors.textPrimary, lineWidth: 2)
 
             case .arc(_, let arcCenter, let radius, let startAngle, let sweepAngle):
                 Path { path in
                     let cx = center.x + CGFloat(arcCenter.x) * scale
                     let cy = center.y - CGFloat(arcCenter.y) * scale
                     let r = CGFloat(radius) * scale
-                    // SwiftUI angles: 0 = right, clockwise positive
-                    // Our angles: 0 = right, counter-clockwise positive
-                    // Convert by negating and using SwiftUI's clockwise convention
                     let sa = Angle(degrees: -startAngle)
                     let ea = Angle(degrees: -(startAngle + sweepAngle))
                     path.addArc(
@@ -234,7 +238,7 @@ struct SketchElementShape: View {
                         clockwise: sweepAngle > 0
                     )
                 }
-                .stroke(Color.blue, lineWidth: 2)
+                .stroke(AppTheme.Colors.textPrimary, lineWidth: 2)
             }
         }
         .allowsHitTesting(false)

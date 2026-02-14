@@ -1,69 +1,79 @@
 import SwiftUI
 
+/// Floating toolbar for the viewport (iPhone: top of viewport, iPad: sidebar header).
 struct ToolbarView: View {
     @ObservedObject var viewModel: ModelViewModel
+    var onShowFeatures: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: AppTheme.Spacing.lg) {
             // Undo
-            Button(action: { viewModel.undo() }) {
-                Image(systemName: "arrow.uturn.backward")
-                    .font(.title3)
+            toolbarButton(
+                icon: "arrow.uturn.backward",
+                identifier: "undo_button",
+                isDisabled: !viewModel.canUndo
+            ) {
+                viewModel.undo()
             }
-            .disabled(!viewModel.canUndo)
-            .accessibilityIdentifier("undo_button")
-            .frame(maxWidth: .infinity)
 
             // Redo
-            Button(action: { viewModel.redo() }) {
-                Image(systemName: "arrow.uturn.forward")
-                    .font(.title3)
+            toolbarButton(
+                icon: "arrow.uturn.forward",
+                identifier: "redo_button",
+                isDisabled: !viewModel.canRedo
+            ) {
+                viewModel.redo()
             }
-            .disabled(!viewModel.canRedo)
-            .accessibilityIdentifier("redo_button")
-            .frame(maxWidth: .infinity)
 
-            Divider().frame(height: 24)
+            Rectangle()
+                .fill(AppTheme.Colors.border)
+                .frame(width: 1, height: 20)
 
-            // Add
-            Button(action: { viewModel.showAddMenu = true }) {
-                VStack(spacing: 2) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                    Text("Add")
-                        .font(.caption2)
-                }
+            // Add shape
+            toolbarButton(
+                icon: "plus.circle.fill",
+                identifier: "toolbar_add_button",
+                color: AppTheme.Colors.accent
+            ) {
+                viewModel.showAddMenu = true
             }
-            .accessibilityIdentifier("toolbar_add_button")
-            .frame(maxWidth: .infinity)
 
-            // Feature Tree toggle
-            Button(action: { withAnimation { viewModel.showFeatureTree.toggle() }}) {
-                VStack(spacing: 2) {
-                    Image(systemName: "list.bullet")
-                        .font(.title2)
-                    Text("Features")
-                        .font(.caption2)
-                }
+            // Features toggle
+            toolbarButton(
+                icon: "list.bullet",
+                identifier: "toolbar_features_button"
+            ) {
+                onShowFeatures?()
             }
-            .accessibilityIdentifier("toolbar_features_button")
-            .frame(maxWidth: .infinity)
 
-            Divider().frame(height: 24)
+            Spacer()
 
             // Export
-            Button(action: { viewModel.showExportSheet = true }) {
-                VStack(spacing: 2) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.title2)
-                    Text("Export")
-                        .font(.caption2)
-                }
+            toolbarButton(
+                icon: "square.and.arrow.up",
+                identifier: "menu_export"
+            ) {
+                viewModel.showExportSheet = true
             }
-            .accessibilityIdentifier("menu_export")
-            .frame(maxWidth: .infinity)
         }
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
+        .padding(.horizontal, AppTheme.Spacing.lg)
+        .padding(.vertical, AppTheme.Spacing.sm)
+        .floatingToolbarStyle()
+    }
+
+    private func toolbarButton(
+        icon: String,
+        identifier: String,
+        isDisabled: Bool = false,
+        color: Color = AppTheme.Colors.textPrimary,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(isDisabled ? AppTheme.Colors.textSecondary.opacity(0.3) : color)
+        }
+        .disabled(isDisabled)
+        .accessibilityIdentifier(identifier)
     }
 }

@@ -12,28 +12,41 @@ struct FeatureTreeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Section header
             HStack {
                 Text("Features")
-                    .font(.headline)
-                    .padding(.horizontal)
+                    .font(AppTheme.Typography.captionBold)
+                    .foregroundColor(AppTheme.Colors.textSecondary)
+                    .textCase(.uppercase)
                 Spacer()
                 Text("\(features.count)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
+                    .font(AppTheme.Typography.small)
+                    .foregroundColor(AppTheme.Colors.textSecondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(AppTheme.Colors.surfaceElevated)
+                    .cornerRadius(AppTheme.CornerRadius.sm)
             }
-            .padding(.vertical, 8)
-            .background(Color(.systemGroupedBackground))
+            .padding(.horizontal, AppTheme.Spacing.lg)
+            .padding(.vertical, AppTheme.Spacing.sm)
 
             if features.isEmpty {
-                Text("No features yet")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding()
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: AppTheme.Spacing.sm) {
+                    Image(systemName: "cube.transparent")
+                        .font(.system(size: 28))
+                        .foregroundColor(AppTheme.Colors.textSecondary.opacity(0.4))
+                    Text("No features yet")
+                        .font(AppTheme.Typography.caption)
+                        .foregroundColor(AppTheme.Colors.textSecondary)
+                    Text("Tap + to add a shape")
+                        .font(AppTheme.Typography.small)
+                        .foregroundColor(AppTheme.Colors.textSecondary.opacity(0.6))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, AppTheme.Spacing.xl)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    LazyVStack(spacing: 1) {
                         ForEach(features) { feature in
                             FeatureRow(
                                 feature: feature,
@@ -49,9 +62,7 @@ struct FeatureTreeView: View {
                 }
             }
         }
-        .background(Color(.systemBackground))
-        .cornerRadius(12, corners: [.topLeft, .topRight])
-        .shadow(radius: 2)
+        .background(AppTheme.Colors.background)
     }
 }
 
@@ -66,34 +77,45 @@ struct FeatureRow: View {
     @State private var isEditing = false
     @State private var editName = ""
 
+    private var featureColor: Color {
+        AppTheme.colorForFeatureKind(feature.kind)
+    }
+
     var body: some View {
         Button(action: onTap) {
-            HStack {
+            HStack(spacing: AppTheme.Spacing.sm) {
+                // Color-coded feature icon
+                Image(systemName: iconForFeature(feature))
+                    .font(.system(size: 14))
+                    .foregroundColor(feature.isSuppressed ? AppTheme.Colors.textSecondary.opacity(0.3) : featureColor)
+                    .frame(width: 24, height: 24)
+
                 // Eye icon for suppress toggle
                 Button(action: { onSuppress?() }) {
                     Image(systemName: feature.isSuppressed ? "eye.slash" : "eye")
-                        .foregroundColor(feature.isSuppressed ? .secondary : .blue)
-                        .frame(width: 24)
+                        .font(.system(size: 11))
+                        .foregroundColor(feature.isSuppressed ? AppTheme.Colors.textSecondary.opacity(0.3) : AppTheme.Colors.textSecondary)
+                        .frame(width: 20)
                 }
                 .accessibilityIdentifier("feature_tree_item_\(feature.index)_eye")
                 .buttonStyle(.plain)
 
-                Image(systemName: iconForFeature(feature))
-                    .foregroundColor(isSelected ? .blue : .secondary)
-                    .frame(width: 24)
-
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
                     if isEditing {
                         TextField("Name", text: $editName, onCommit: {
                             onRename?(editName)
                             isEditing = false
                         })
-                        .textFieldStyle(.roundedBorder)
-                        .font(.subheadline)
+                        .font(AppTheme.Typography.body)
+                        .foregroundColor(AppTheme.Colors.textPrimary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(AppTheme.Colors.surfaceElevated)
+                        .cornerRadius(AppTheme.CornerRadius.sm)
                     } else {
                         Text(feature.name)
-                            .font(.subheadline)
-                            .foregroundColor(feature.isSuppressed ? .secondary : .primary)
+                            .font(AppTheme.Typography.body)
+                            .foregroundColor(feature.isSuppressed ? AppTheme.Colors.textSecondary.opacity(0.4) : AppTheme.Colors.textPrimary)
                             .strikethrough(feature.isSuppressed)
                             .onTapGesture(count: 2) {
                                 editName = feature.name
@@ -102,21 +124,34 @@ struct FeatureRow: View {
                     }
 
                     Text(feature.detail)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(AppTheme.Typography.small)
+                        .foregroundColor(AppTheme.Colors.textSecondary.opacity(0.7))
                 }
 
                 Spacer()
 
+                // Index badge
                 Text("\(feature.index + 1)")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundColor(AppTheme.Colors.textSecondary.opacity(0.5))
+
+                // Drag handle (visual only)
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 10))
+                    .foregroundColor(AppTheme.Colors.textSecondary.opacity(0.3))
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
+            .padding(.horizontal, AppTheme.Spacing.md)
+            .padding(.vertical, AppTheme.Spacing.sm)
+            .background(isSelected ? AppTheme.Colors.accentDim.opacity(0.3) : AppTheme.Colors.surface)
+            .overlay(
+                Rectangle()
+                    .fill(isSelected ? AppTheme.Colors.accent : Color.clear)
+                    .frame(width: 3),
+                alignment: .leading
+            )
         }
         .buttonStyle(.plain)
+        .opacity(feature.isSuppressed ? 0.5 : 1.0)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
                 onDelete?()
@@ -134,7 +169,6 @@ struct FeatureRow: View {
             }
             .tint(.orange)
         }
-        Divider().padding(.leading, 48)
     }
 
     private func iconForFeature(_ f: FeatureDisplayItem) -> String {

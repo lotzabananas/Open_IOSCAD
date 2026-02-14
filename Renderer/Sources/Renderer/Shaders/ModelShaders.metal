@@ -44,23 +44,27 @@ fragment float4 model_fragment(
     ModelVertexOut       in       [[stage_in]],
     constant Uniforms&   uniforms [[buffer(1)]])
 {
-    // Edge pass: solid dark outline
+    // Edge pass: subtle dark outline for dark theme
     if (uniforms.isEdgePass == 1) {
-        return float4(0.1, 0.1, 0.1, 0.85);
+        return float4(0.2, 0.2, 0.2, 0.5);
     }
 
-    // Phong shading
+    // Phong shading with rim lighting for dark background
     float3 N = normalize(in.viewNormal);
     float3 L = normalize(uniforms.lightDirection);
     float3 V = normalize(-in.viewPosition);
     float3 R = reflect(-L, N);
 
-    float ambient  = 0.2;
+    float ambient  = 0.15;
     float diffuse  = max(dot(N, L), 0.0);
-    float specular = pow(max(dot(R, V), 0.0), 32.0) * 0.3;
+    float specular = pow(max(dot(R, V), 0.0), 48.0) * 0.5;
+
+    // Rim lighting: bright edge against dark background for silhouette definition
+    float rim = 1.0 - max(dot(N, V), 0.0);
+    rim = pow(rim, 3.0) * 0.25;
 
     float3 baseColor = uniforms.modelColor.rgb;
-    float3 color = baseColor * (ambient + diffuse) + float3(specular);
+    float3 color = baseColor * (ambient + diffuse) + float3(specular) + float3(rim);
     return float4(saturate(color), uniforms.modelColor.a);
 }
 
@@ -87,10 +91,10 @@ vertex BackgroundVertexOut background_vertex(uint vid [[vertex_id]]) {
 }
 
 fragment float4 background_fragment(BackgroundVertexOut in [[stage_in]]) {
-    // Vertical gradient: top = lighter, bottom = darker
+    // Dark Pro viewport gradient: top = slightly lighter, bottom = darker
     float t = in.uv.y;
-    float3 topColor    = float3(0.85, 0.87, 0.90);
-    float3 bottomColor = float3(0.60, 0.62, 0.65);
+    float3 topColor    = float3(0.169, 0.169, 0.169); // #2B2B2B
+    float3 bottomColor = float3(0.102, 0.102, 0.102); // #1A1A1A
     float3 color = mix(bottomColor, topColor, t);
     return float4(color, 1.0);
 }

@@ -7,51 +7,45 @@ struct SketchToolbar: View {
     let onCancel: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: AppTheme.Spacing.sm) {
             // Tool selection
             ForEach(SketchTool.allCases, id: \.self) { tool in
                 Button(action: { sketchVM.selectedTool = tool }) {
-                    VStack(spacing: 2) {
-                        Image(systemName: tool.iconName)
-                            .font(.title3)
-                        Text(tool.displayName)
-                            .font(.caption2)
-                    }
-                    .foregroundColor(sketchVM.selectedTool == tool ? .blue : .primary)
+                    Image(systemName: tool.iconName)
+                        .font(.system(size: 16))
+                        .foregroundColor(sketchVM.selectedTool == tool ? AppTheme.Colors.accent : AppTheme.Colors.textSecondary)
+                        .frame(width: 36, height: 36)
+                        .background(sketchVM.selectedTool == tool ? AppTheme.Colors.accentDim.opacity(0.3) : Color.clear)
+                        .cornerRadius(AppTheme.CornerRadius.sm)
                 }
                 .accessibilityIdentifier("sketch_tool_\(tool.rawValue)")
             }
 
-            Divider().frame(height: 30)
+            Rectangle()
+                .fill(AppTheme.Colors.border)
+                .frame(width: 1, height: 24)
 
             // Finish
             Button(action: onFinish) {
-                VStack(spacing: 2) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.title3)
-                    Text("Finish")
-                        .font(.caption2)
-                }
-                .foregroundColor(.green)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(AppTheme.Colors.success)
             }
             .accessibilityIdentifier("sketch_finish")
 
             // Cancel
             Button(action: onCancel) {
-                VStack(spacing: 2) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title3)
-                    Text("Cancel")
-                        .font(.caption2)
-                }
-                .foregroundColor(.red)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(AppTheme.Colors.error)
             }
             .accessibilityIdentifier("sketch_cancel")
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        .padding(.horizontal, AppTheme.Spacing.lg)
+        .padding(.vertical, AppTheme.Spacing.sm)
+        .background(AppTheme.Colors.background.opacity(0.92))
+        .cornerRadius(AppTheme.CornerRadius.lg)
+        .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
         .padding(.top, 60)
 
         // Extrude prompt after finishing sketch
@@ -66,43 +60,76 @@ struct ExtrudePromptView: View {
     @ObservedObject var sketchVM: SketchViewModel
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: AppTheme.Spacing.lg) {
             Text("Extrude Sketch")
-                .font(.headline)
+                .font(AppTheme.Typography.heading)
+                .foregroundColor(AppTheme.Colors.textPrimary)
 
-            HStack {
+            HStack(spacing: AppTheme.Spacing.sm) {
                 Text("Depth")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.Colors.textSecondary)
+
                 TextField("Depth", value: $sketchVM.extrudeDepth, format: .number)
-                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(AppTheme.Colors.textPrimary)
+                    .padding(.horizontal, AppTheme.Spacing.sm)
+                    .padding(.vertical, AppTheme.Spacing.xs + 2)
+                    .background(AppTheme.Colors.surfaceElevated)
+                    .cornerRadius(AppTheme.CornerRadius.sm)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.CornerRadius.sm)
+                            .stroke(AppTheme.Colors.border, lineWidth: 0.5)
+                    )
                     .keyboardType(.decimalPad)
                     .accessibilityIdentifier("extrude_prompt_depth")
+
                 Text("mm")
-                    .foregroundColor(.secondary)
+                    .font(AppTheme.Typography.small)
+                    .foregroundColor(AppTheme.Colors.textSecondary.opacity(0.6))
             }
 
-            HStack(spacing: 16) {
+            HStack(spacing: AppTheme.Spacing.md) {
                 Button("Extrude (Add)") {
                     sketchVM.pendingOperation = .additive
                     sketchVM.showExtrudePrompt = false
                 }
+                .font(AppTheme.Typography.captionBold)
+                .foregroundColor(.white)
+                .padding(.horizontal, AppTheme.Spacing.lg)
+                .padding(.vertical, AppTheme.Spacing.sm)
+                .background(AppTheme.Colors.accent)
+                .cornerRadius(AppTheme.CornerRadius.md)
                 .accessibilityIdentifier("extrude_prompt_add")
 
                 Button("Cut") {
                     sketchVM.pendingOperation = .subtractive
                     sketchVM.showExtrudePrompt = false
                 }
+                .font(AppTheme.Typography.captionBold)
+                .foregroundColor(.white)
+                .padding(.horizontal, AppTheme.Spacing.lg)
+                .padding(.vertical, AppTheme.Spacing.sm)
+                .background(AppTheme.Colors.error)
+                .cornerRadius(AppTheme.CornerRadius.md)
                 .accessibilityIdentifier("extrude_prompt_cut")
 
                 Button("Cancel") {
                     sketchVM.showExtrudePrompt = false
                 }
-                .foregroundColor(.red)
+                .font(AppTheme.Typography.caption)
+                .foregroundColor(AppTheme.Colors.textSecondary)
                 .accessibilityIdentifier("extrude_prompt_cancel")
             }
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
+        .padding(AppTheme.Spacing.xl)
+        .background(AppTheme.Colors.surface)
+        .cornerRadius(AppTheme.CornerRadius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.CornerRadius.lg)
+                .stroke(AppTheme.Colors.border, lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.5), radius: 16, y: 8)
         .padding(.horizontal, 40)
     }
 }

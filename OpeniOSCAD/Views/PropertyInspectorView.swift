@@ -10,23 +10,43 @@ struct PropertyInspectorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text(feature.name)
-                    .font(.headline)
+            // Header with feature icon and name
+            HStack(spacing: AppTheme.Spacing.sm) {
+                Image(systemName: iconForFeature(feature))
+                    .foregroundColor(AppTheme.colorForFeatureKind(feature.kind))
+                    .font(.system(size: 16))
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(feature.name)
+                        .font(AppTheme.Typography.heading)
+                        .foregroundColor(AppTheme.Colors.textPrimary)
+                    Text(feature.kind.rawValue.capitalized)
+                        .font(AppTheme.Typography.small)
+                        .foregroundColor(AppTheme.Colors.textSecondary)
+                }
+
                 Spacer()
+
                 Button(action: onDismiss) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppTheme.Colors.textSecondary)
+                        .frame(width: 24, height: 24)
+                        .background(AppTheme.Colors.surfaceElevated)
+                        .cornerRadius(AppTheme.CornerRadius.sm)
                 }
                 .accessibilityIdentifier("property_inspector_dismiss")
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            .background(Color(.systemGroupedBackground))
+            .padding(.horizontal, AppTheme.Spacing.lg)
+            .padding(.vertical, AppTheme.Spacing.md)
+            .background(AppTheme.Colors.surface)
+
+            Rectangle()
+                .fill(AppTheme.Colors.border)
+                .frame(height: 1)
 
             ScrollView {
-                VStack(spacing: 12) {
+                VStack(spacing: AppTheme.Spacing.lg) {
                     switch feature {
                     case .sketch(let sketch):
                         SketchInspector(sketch: sketch, onUpdate: { updated in
@@ -78,12 +98,54 @@ struct PropertyInspectorView: View {
                         })
                     }
                 }
-                .padding()
+                .padding(AppTheme.Spacing.lg)
             }
         }
-        .background(Color(.systemBackground))
-        .cornerRadius(12, corners: [.topLeft, .topRight])
-        .shadow(radius: 2)
+        .background(AppTheme.Colors.background)
+    }
+
+    private func iconForFeature(_ f: AnyFeature) -> String {
+        switch f {
+        case .sketch: return "pencil.and.outline"
+        case .extrude: return "arrow.up.to.line"
+        case .revolve: return "arrow.triangle.2.circlepath"
+        case .boolean: return "square.on.square"
+        case .transform: return "arrow.up.and.down.and.arrow.left.and.right"
+        case .fillet: return "circle.bottomhalf.filled"
+        case .chamfer: return "triangle"
+        case .shell: return "cube.transparent"
+        case .pattern: return "square.grid.3x1.below.line.grid.1x2"
+        case .sweep: return "point.topleft.down.to.point.bottomright.curvepath"
+        case .loft: return "trapezoid.and.line.vertical"
+        case .assembly: return "square.3.layers.3d"
+        }
+    }
+}
+
+// MARK: - Inspector Section Container
+
+private struct InspectorSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.sm) {
+            Text(title)
+                .font(AppTheme.Typography.captionBold)
+                .foregroundColor(AppTheme.Colors.textSecondary)
+                .textCase(.uppercase)
+
+            VStack(spacing: AppTheme.Spacing.sm) {
+                content()
+            }
+            .padding(AppTheme.Spacing.md)
+            .background(AppTheme.Colors.surface)
+            .cornerRadius(AppTheme.CornerRadius.md)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.CornerRadius.md)
+                    .stroke(AppTheme.Colors.border, lineWidth: 0.5)
+            )
+        }
     }
 }
 
@@ -94,16 +156,26 @@ private struct SketchInspector: View {
     let onUpdate: (SketchFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Plane: \(sketch.plane.displayName)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            ForEach(Array(sketch.elements.enumerated()), id: \.element.id) { index, element in
-                elementEditor(element, at: index)
+        InspectorSection(title: "Sketch") {
+            HStack {
+                Text("Plane")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.Colors.textSecondary)
+                Spacer()
+                Text(sketch.plane.displayName)
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.Colors.textPrimary)
             }
+        }
 
-            ConstraintListView(constraints: sketch.constraints)
+        ForEach(Array(sketch.elements.enumerated()), id: \.element.id) { index, element in
+            elementEditor(element, at: index)
+        }
+
+        if !sketch.constraints.isEmpty {
+            InspectorSection(title: "Constraints") {
+                ConstraintListView(constraints: sketch.constraints)
+            }
         }
     }
 
@@ -111,25 +183,23 @@ private struct SketchInspector: View {
     private func elementEditor(_ element: SketchElement, at index: Int) -> some View {
         switch element {
         case .rectangle(let id, let origin, let width, let height):
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Rectangle")
-                    .font(.caption.bold())
-                NumericField("Width", value: width, identifier: "sketch_rect_width") { newVal in
+            InspectorSection(title: "Rectangle") {
+                NumericField("Width", value: width, unit: "mm", identifier: "sketch_rect_width") { newVal in
                     var updated = sketch
                     updated.elements[index] = .rectangle(id: id, origin: origin, width: newVal, height: height)
                     onUpdate(updated)
                 }
-                NumericField("Height", value: height, identifier: "sketch_rect_height") { newVal in
+                NumericField("Height", value: height, unit: "mm", identifier: "sketch_rect_height") { newVal in
                     var updated = sketch
                     updated.elements[index] = .rectangle(id: id, origin: origin, width: width, height: newVal)
                     onUpdate(updated)
                 }
-                NumericField("Origin X", value: origin.x, identifier: "sketch_rect_ox") { newVal in
+                NumericField("Origin X", value: origin.x, unit: "mm", identifier: "sketch_rect_ox") { newVal in
                     var updated = sketch
                     updated.elements[index] = .rectangle(id: id, origin: Point2D(x: newVal, y: origin.y), width: width, height: height)
                     onUpdate(updated)
                 }
-                NumericField("Origin Y", value: origin.y, identifier: "sketch_rect_oy") { newVal in
+                NumericField("Origin Y", value: origin.y, unit: "mm", identifier: "sketch_rect_oy") { newVal in
                     var updated = sketch
                     updated.elements[index] = .rectangle(id: id, origin: Point2D(x: origin.x, y: newVal), width: width, height: height)
                     onUpdate(updated)
@@ -137,20 +207,18 @@ private struct SketchInspector: View {
             }
 
         case .circle(let id, let center, let radius):
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Circle")
-                    .font(.caption.bold())
-                NumericField("Radius", value: radius, identifier: "sketch_circle_radius") { newVal in
+            InspectorSection(title: "Circle") {
+                NumericField("Radius", value: radius, unit: "mm", identifier: "sketch_circle_radius") { newVal in
                     var updated = sketch
                     updated.elements[index] = .circle(id: id, center: center, radius: newVal)
                     onUpdate(updated)
                 }
-                NumericField("Center X", value: center.x, identifier: "sketch_circle_cx") { newVal in
+                NumericField("Center X", value: center.x, unit: "mm", identifier: "sketch_circle_cx") { newVal in
                     var updated = sketch
                     updated.elements[index] = .circle(id: id, center: Point2D(x: newVal, y: center.y), radius: radius)
                     onUpdate(updated)
                 }
-                NumericField("Center Y", value: center.y, identifier: "sketch_circle_cy") { newVal in
+                NumericField("Center Y", value: center.y, unit: "mm", identifier: "sketch_circle_cy") { newVal in
                     var updated = sketch
                     updated.elements[index] = .circle(id: id, center: Point2D(x: center.x, y: newVal), radius: radius)
                     onUpdate(updated)
@@ -158,25 +226,23 @@ private struct SketchInspector: View {
             }
 
         case .lineSegment(let id, let start, let end):
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Line Segment")
-                    .font(.caption.bold())
-                NumericField("Start X", value: start.x, identifier: "sketch_line_sx") { newVal in
+            InspectorSection(title: "Line Segment") {
+                NumericField("Start X", value: start.x, unit: "mm", identifier: "sketch_line_sx") { newVal in
                     var updated = sketch
                     updated.elements[index] = .lineSegment(id: id, start: Point2D(x: newVal, y: start.y), end: end)
                     onUpdate(updated)
                 }
-                NumericField("Start Y", value: start.y, identifier: "sketch_line_sy") { newVal in
+                NumericField("Start Y", value: start.y, unit: "mm", identifier: "sketch_line_sy") { newVal in
                     var updated = sketch
                     updated.elements[index] = .lineSegment(id: id, start: Point2D(x: start.x, y: newVal), end: end)
                     onUpdate(updated)
                 }
-                NumericField("End X", value: end.x, identifier: "sketch_line_ex") { newVal in
+                NumericField("End X", value: end.x, unit: "mm", identifier: "sketch_line_ex") { newVal in
                     var updated = sketch
                     updated.elements[index] = .lineSegment(id: id, start: start, end: Point2D(x: newVal, y: end.y))
                     onUpdate(updated)
                 }
-                NumericField("End Y", value: end.y, identifier: "sketch_line_ey") { newVal in
+                NumericField("End Y", value: end.y, unit: "mm", identifier: "sketch_line_ey") { newVal in
                     var updated = sketch
                     updated.elements[index] = .lineSegment(id: id, start: start, end: Point2D(x: end.x, y: newVal))
                     onUpdate(updated)
@@ -184,30 +250,28 @@ private struct SketchInspector: View {
             }
 
         case .arc(let id, let center, let radius, let startAngle, let sweepAngle):
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Arc")
-                    .font(.caption.bold())
-                NumericField("Radius", value: radius, identifier: "sketch_arc_radius") { newVal in
+            InspectorSection(title: "Arc") {
+                NumericField("Radius", value: radius, unit: "mm", identifier: "sketch_arc_radius") { newVal in
                     var updated = sketch
                     updated.elements[index] = .arc(id: id, center: center, radius: newVal, startAngle: startAngle, sweepAngle: sweepAngle)
                     onUpdate(updated)
                 }
-                NumericField("Start", value: startAngle, identifier: "sketch_arc_start") { newVal in
+                NumericField("Start", value: startAngle, unit: "\u{00B0}", identifier: "sketch_arc_start") { newVal in
                     var updated = sketch
                     updated.elements[index] = .arc(id: id, center: center, radius: radius, startAngle: newVal, sweepAngle: sweepAngle)
                     onUpdate(updated)
                 }
-                NumericField("Sweep", value: sweepAngle, identifier: "sketch_arc_sweep") { newVal in
+                NumericField("Sweep", value: sweepAngle, unit: "\u{00B0}", identifier: "sketch_arc_sweep") { newVal in
                     var updated = sketch
                     updated.elements[index] = .arc(id: id, center: center, radius: radius, startAngle: startAngle, sweepAngle: newVal)
                     onUpdate(updated)
                 }
-                NumericField("Center X", value: center.x, identifier: "sketch_arc_cx") { newVal in
+                NumericField("Center X", value: center.x, unit: "mm", identifier: "sketch_arc_cx") { newVal in
                     var updated = sketch
                     updated.elements[index] = .arc(id: id, center: Point2D(x: newVal, y: center.y), radius: radius, startAngle: startAngle, sweepAngle: sweepAngle)
                     onUpdate(updated)
                 }
-                NumericField("Center Y", value: center.y, identifier: "sketch_arc_cy") { newVal in
+                NumericField("Center Y", value: center.y, unit: "mm", identifier: "sketch_arc_cy") { newVal in
                     var updated = sketch
                     updated.elements[index] = .arc(id: id, center: Point2D(x: center.x, y: newVal), radius: radius, startAngle: startAngle, sweepAngle: sweepAngle)
                     onUpdate(updated)
@@ -223,21 +287,16 @@ private struct ConstraintListView: View {
     let constraints: [SketchConstraint]
 
     var body: some View {
-        if !constraints.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Constraints")
-                    .font(.caption.bold())
-                ForEach(constraints) { constraint in
-                    HStack {
-                        Image(systemName: constraint.isDimensional ? "ruler" : "link")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Text(constraint.typeName)
-                            .font(.caption)
-                    }
-                    .accessibilityIdentifier("constraint_\(constraint.id.uuidString.prefix(8))")
-                }
+        ForEach(constraints) { constraint in
+            HStack {
+                Image(systemName: constraint.isDimensional ? "ruler" : "link")
+                    .font(.system(size: 11))
+                    .foregroundColor(AppTheme.Colors.textSecondary)
+                Text(constraint.typeName)
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.Colors.textPrimary)
             }
+            .accessibilityIdentifier("constraint_\(constraint.id.uuidString.prefix(8))")
         }
     }
 }
@@ -249,17 +308,15 @@ private struct ExtrudeInspector: View {
     let onUpdate: (ExtrudeFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(extrude.operation == .additive ? "Additive (Boss)" : "Subtractive (Cut)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            NumericField("Depth", value: extrude.depth, identifier: "extrude_depth") { newVal in
+        InspectorSection(title: "Dimensions") {
+            NumericField("Depth", value: extrude.depth, unit: "mm", identifier: "extrude_depth") { newVal in
                 var updated = extrude
                 updated.depth = newVal
                 onUpdate(updated)
             }
+        }
 
+        InspectorSection(title: "Operation") {
             Picker("Operation", selection: Binding(
                 get: { extrude.operation },
                 set: { newOp in
@@ -284,17 +341,15 @@ private struct RevolveInspector: View {
     let onUpdate: (RevolveFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(revolve.operation == .additive ? "Additive" : "Subtractive")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            NumericField("Angle", value: revolve.angle, identifier: "revolve_angle") { newVal in
+        InspectorSection(title: "Dimensions") {
+            NumericField("Angle", value: revolve.angle, unit: "\u{00B0}", identifier: "revolve_angle") { newVal in
                 var updated = revolve
                 updated.angle = max(0.1, min(360.0, newVal))
                 onUpdate(updated)
             }
+        }
 
+        InspectorSection(title: "Operation") {
             Picker("Operation", selection: Binding(
                 get: { revolve.operation },
                 set: { newOp in
@@ -319,7 +374,7 @@ private struct BooleanInspector: View {
     let onUpdate: (BooleanFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        InspectorSection(title: "Boolean Type") {
             Picker("Type", selection: Binding(
                 get: { boolean.booleanType },
                 set: { newType in
@@ -345,24 +400,27 @@ private struct TransformInspector: View {
     let onUpdate: (TransformFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            NumericField("X", value: transform.vector.x, identifier: "transform_x") { newVal in
+        InspectorSection(title: "Position") {
+            NumericField("X", value: transform.vector.x, unit: "mm", identifier: "transform_x") { newVal in
                 var updated = transform
                 updated.vector.x = newVal
                 onUpdate(updated)
             }
-            NumericField("Y", value: transform.vector.y, identifier: "transform_y") { newVal in
+            NumericField("Y", value: transform.vector.y, unit: "mm", identifier: "transform_y") { newVal in
                 var updated = transform
                 updated.vector.y = newVal
                 onUpdate(updated)
             }
-            NumericField("Z", value: transform.vector.z, identifier: "transform_z") { newVal in
+            NumericField("Z", value: transform.vector.z, unit: "mm", identifier: "transform_z") { newVal in
                 var updated = transform
                 updated.vector.z = newVal
                 onUpdate(updated)
             }
-            if transform.transformType == .rotate {
-                NumericField("Angle", value: transform.angle, identifier: "transform_angle") { newVal in
+        }
+
+        if transform.transformType == .rotate {
+            InspectorSection(title: "Rotation") {
+                NumericField("Angle", value: transform.angle, unit: "\u{00B0}", identifier: "transform_angle") { newVal in
                     var updated = transform
                     updated.angle = newVal
                     onUpdate(updated)
@@ -379,12 +437,8 @@ private struct FilletInspector: View {
     let onUpdate: (FilletFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Fillet (Round Edges)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            NumericField("Radius", value: fillet.radius, identifier: "fillet_radius") { newVal in
+        InspectorSection(title: "Dimensions") {
+            NumericField("Radius", value: fillet.radius, unit: "mm", identifier: "fillet_radius") { newVal in
                 var updated = fillet
                 updated.radius = max(0.1, newVal)
                 onUpdate(updated)
@@ -400,12 +454,8 @@ private struct ChamferInspector: View {
     let onUpdate: (ChamferFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Chamfer (Bevel Edges)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            NumericField("Distance", value: chamfer.distance, identifier: "chamfer_distance") { newVal in
+        InspectorSection(title: "Dimensions") {
+            NumericField("Distance", value: chamfer.distance, unit: "mm", identifier: "chamfer_distance") { newVal in
                 var updated = chamfer
                 updated.distance = max(0.1, newVal)
                 onUpdate(updated)
@@ -421,12 +471,8 @@ private struct ShellInspector: View {
     let onUpdate: (ShellFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Shell (Hollow)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            NumericField("Thickness", value: shell.thickness, identifier: "shell_thickness") { newVal in
+        InspectorSection(title: "Dimensions") {
+            NumericField("Thickness", value: shell.thickness, unit: "mm", identifier: "shell_thickness") { newVal in
                 var updated = shell
                 updated.thickness = max(0.1, newVal)
                 onUpdate(updated)
@@ -442,7 +488,7 @@ private struct PatternInspector: View {
     let onUpdate: (PatternFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        InspectorSection(title: "Pattern Type") {
             Picker("Type", selection: Binding(
                 get: { pattern.patternType },
                 set: { newType in
@@ -457,17 +503,21 @@ private struct PatternInspector: View {
             }
             .pickerStyle(.segmented)
             .accessibilityIdentifier("pattern_type_picker")
+        }
 
-            if pattern.patternType != .mirror {
+        if pattern.patternType != .mirror {
+            InspectorSection(title: "Count") {
                 NumericField("Count", value: Double(pattern.count), identifier: "pattern_count") { newVal in
                     var updated = pattern
                     updated.count = max(1, Int(newVal))
                     onUpdate(updated)
                 }
             }
+        }
 
-            if pattern.patternType == .linear {
-                NumericField("Spacing", value: pattern.spacing, identifier: "pattern_spacing") { newVal in
+        if pattern.patternType == .linear {
+            InspectorSection(title: "Spacing & Direction") {
+                NumericField("Spacing", value: pattern.spacing, unit: "mm", identifier: "pattern_spacing") { newVal in
                     var updated = pattern
                     updated.spacing = max(0.1, newVal)
                     onUpdate(updated)
@@ -488,9 +538,11 @@ private struct PatternInspector: View {
                     onUpdate(updated)
                 }
             }
+        }
 
-            if pattern.patternType == .circular {
-                NumericField("Angle", value: pattern.totalAngle, identifier: "pattern_total_angle") { newVal in
+        if pattern.patternType == .circular {
+            InspectorSection(title: "Angle") {
+                NumericField("Total Angle", value: pattern.totalAngle, unit: "\u{00B0}", identifier: "pattern_total_angle") { newVal in
                     var updated = pattern
                     updated.totalAngle = max(1, min(360, newVal))
                     onUpdate(updated)
@@ -507,12 +559,8 @@ private struct SweepInspector: View {
     let onUpdate: (SweepFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Sweep (Profile Along Path)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            NumericField("Twist", value: sweep.twist, identifier: "sweep_twist") { newVal in
+        InspectorSection(title: "Parameters") {
+            NumericField("Twist", value: sweep.twist, unit: "\u{00B0}", identifier: "sweep_twist") { newVal in
                 var updated = sweep
                 updated.twist = newVal
                 onUpdate(updated)
@@ -522,6 +570,9 @@ private struct SweepInspector: View {
                 updated.scaleEnd = max(0.01, newVal)
                 onUpdate(updated)
             }
+        }
+
+        InspectorSection(title: "Operation") {
             Picker("Operation", selection: Binding(
                 get: { sweep.operation },
                 set: { newOp in
@@ -546,21 +597,26 @@ private struct LoftInspector: View {
     let onUpdate: (LoftFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Loft (Blend Profiles)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            Text("\(loft.profileSketchIDs.count) profiles")
-                .font(.caption)
-                .accessibilityIdentifier("loft_profile_count")
+        InspectorSection(title: "Profiles") {
+            HStack {
+                Text("Profiles")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.Colors.textSecondary)
+                Spacer()
+                Text("\(loft.profileSketchIDs.count)")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.Colors.textPrimary)
+            }
+            .accessibilityIdentifier("loft_profile_count")
 
             NumericField("Slices", value: Double(loft.slicesPerSpan), identifier: "loft_slices") { newVal in
                 var updated = loft
                 updated.slicesPerSpan = max(1, Int(newVal))
                 onUpdate(updated)
             }
+        }
 
+        InspectorSection(title: "Operation") {
             Picker("Operation", selection: Binding(
                 get: { loft.operation },
                 set: { newOp in
@@ -585,41 +641,49 @@ private struct AssemblyInspector: View {
     let onUpdate: (AssemblyFeature) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Assembly (Body Group)")
-                .font(.caption)
-                .foregroundColor(.secondary)
+        InspectorSection(title: "Members") {
+            HStack {
+                Text("Members")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.Colors.textSecondary)
+                Spacer()
+                Text("\(assembly.memberFeatureIDs.count)")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundColor(AppTheme.Colors.textPrimary)
+            }
+            .accessibilityIdentifier("assembly_member_count")
+        }
 
-            Text("\(assembly.memberFeatureIDs.count) members")
-                .font(.caption)
-                .accessibilityIdentifier("assembly_member_count")
-
-            NumericField("Pos X", value: assembly.positionX, identifier: "assembly_pos_x") { newVal in
+        InspectorSection(title: "Position") {
+            NumericField("X", value: assembly.positionX, unit: "mm", identifier: "assembly_pos_x") { newVal in
                 var updated = assembly
                 updated.positionX = newVal
                 onUpdate(updated)
             }
-            NumericField("Pos Y", value: assembly.positionY, identifier: "assembly_pos_y") { newVal in
+            NumericField("Y", value: assembly.positionY, unit: "mm", identifier: "assembly_pos_y") { newVal in
                 var updated = assembly
                 updated.positionY = newVal
                 onUpdate(updated)
             }
-            NumericField("Pos Z", value: assembly.positionZ, identifier: "assembly_pos_z") { newVal in
+            NumericField("Z", value: assembly.positionZ, unit: "mm", identifier: "assembly_pos_z") { newVal in
                 var updated = assembly
                 updated.positionZ = newVal
                 onUpdate(updated)
             }
-            NumericField("Rot X", value: assembly.rotationX, identifier: "assembly_rot_x") { newVal in
+        }
+
+        InspectorSection(title: "Rotation") {
+            NumericField("X", value: assembly.rotationX, unit: "\u{00B0}", identifier: "assembly_rot_x") { newVal in
                 var updated = assembly
                 updated.rotationX = newVal
                 onUpdate(updated)
             }
-            NumericField("Rot Y", value: assembly.rotationY, identifier: "assembly_rot_y") { newVal in
+            NumericField("Y", value: assembly.rotationY, unit: "\u{00B0}", identifier: "assembly_rot_y") { newVal in
                 var updated = assembly
                 updated.rotationY = newVal
                 onUpdate(updated)
             }
-            NumericField("Rot Z", value: assembly.rotationZ, identifier: "assembly_rot_z") { newVal in
+            NumericField("Z", value: assembly.rotationZ, unit: "\u{00B0}", identifier: "assembly_rot_z") { newVal in
                 var updated = assembly
                 updated.rotationZ = newVal
                 onUpdate(updated)
@@ -628,39 +692,58 @@ private struct AssemblyInspector: View {
     }
 }
 
-// MARK: - Numeric Field
+// MARK: - Numeric Field (Dark Themed)
 
 private struct NumericField: View {
     let label: String
     let value: Double
+    var unit: String = ""
     let identifier: String
     let onChange: (Double) -> Void
 
     @State private var textValue: String
 
-    init(_ label: String, value: Double, identifier: String, onChange: @escaping (Double) -> Void) {
+    init(_ label: String, value: Double, unit: String = "", identifier: String, onChange: @escaping (Double) -> Void) {
         self.label = label
         self.value = value
+        self.unit = unit
         self.identifier = identifier
         self.onChange = onChange
         self._textValue = State(initialValue: String(format: "%.2f", value))
     }
 
     var body: some View {
-        HStack {
+        HStack(spacing: AppTheme.Spacing.sm) {
             Text(label)
-                .font(.caption)
+                .font(AppTheme.Typography.caption)
+                .foregroundColor(AppTheme.Colors.textSecondary)
                 .frame(width: 60, alignment: .leading)
+
             TextField(label, text: $textValue)
-                .textFieldStyle(.roundedBorder)
-                .font(.caption)
+                .font(.system(.caption, design: .monospaced))
                 .keyboardType(.decimalPad)
                 .accessibilityIdentifier(identifier)
+                .foregroundColor(AppTheme.Colors.textPrimary)
+                .padding(.horizontal, AppTheme.Spacing.sm)
+                .padding(.vertical, AppTheme.Spacing.xs + 2)
+                .background(AppTheme.Colors.surfaceElevated)
+                .cornerRadius(AppTheme.CornerRadius.sm)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.CornerRadius.sm)
+                        .stroke(AppTheme.Colors.border, lineWidth: 0.5)
+                )
                 .onSubmit {
                     if let newVal = Double(textValue) {
                         onChange(newVal)
                     }
                 }
+
+            if !unit.isEmpty {
+                Text(unit)
+                    .font(AppTheme.Typography.small)
+                    .foregroundColor(AppTheme.Colors.textSecondary.opacity(0.6))
+                    .frame(width: 22, alignment: .leading)
+            }
         }
     }
 }

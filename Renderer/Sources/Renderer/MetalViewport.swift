@@ -25,7 +25,7 @@ public struct MetalViewport: UIViewRepresentable {
         let coordinator = context.coordinator
 
         guard let pipeline = RenderPipeline() else {
-            // Metal not available; return a blank view.
+            print("[MetalViewport] ERROR: RenderPipeline init failed — Metal not available or shader compilation error")
             return mtkView
         }
 
@@ -38,7 +38,8 @@ public struct MetalViewport: UIViewRepresentable {
         mtkView.delegate = coordinator
         mtkView.colorPixelFormat = .bgra8Unorm
         mtkView.depthStencilPixelFormat = .depth32Float
-        mtkView.clearColor = MTLClearColor(red: 0.75, green: 0.77, blue: 0.80, alpha: 1.0)
+        // Dark Pro viewport clear color
+        mtkView.clearColor = MTLClearColor(red: 0.102, green: 0.102, blue: 0.102, alpha: 1.0)
         mtkView.isPaused = false
         mtkView.enableSetNeedsDisplay = false
         mtkView.preferredFramesPerSecond = 60
@@ -117,6 +118,31 @@ public struct MetalViewport: UIViewRepresentable {
 
         public func draw(in view: MTKView) {
             pipeline?.render(in: view, camera: camera)
+        }
+
+        // MARK: Camera Control Methods
+
+        /// Animate camera to a preset view orientation.
+        func setPresetView(azimuth: Float, elevation: Float) {
+            camera.azimuth = azimuth
+            camera.elevation = elevation
+        }
+
+        /// Zoom in by a fixed factor.
+        func zoomIn() {
+            camera.zoom(factor: 0.8)
+        }
+
+        /// Zoom out by a fixed factor.
+        func zoomOut() {
+            camera.zoom(factor: 1.25)
+        }
+
+        /// Fit the model in view.
+        func fitAll() {
+            if let mesh = lastMesh, !mesh.isEmpty {
+                camera.fitAll(boundingBox: mesh.boundingBox)
+            }
         }
 
         // MARK: Gesture Handlers

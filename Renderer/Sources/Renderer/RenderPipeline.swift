@@ -22,6 +22,13 @@ struct Uniforms {
     var _pad1: SIMD3<UInt32> = .zero    // pad to 16-byte alignment
 }
 
+/// Grid uniforms matching the Metal shader `GridUniforms` struct.
+/// Uses SIMD4 for camera position to avoid float3 alignment mismatch between Swift and Metal.
+struct GridUniforms {
+    var viewProjection: simd_float4x4
+    var cameraPositionPad: SIMD4<Float>  // xyz = position, w = unused
+}
+
 /// Metal render pipeline that draws a `TriangleMesh` with Phong shading and edge overlay.
 public class RenderPipeline {
 
@@ -33,9 +40,14 @@ public class RenderPipeline {
     private let solidPipelineState: MTLRenderPipelineState
     private let edgePipelineState: MTLRenderPipelineState
     private let backgroundPipelineState: MTLRenderPipelineState
+    private var gridPipelineState: MTLRenderPipelineState?
     private let solidDepthState: MTLDepthStencilState
     private let edgeDepthState: MTLDepthStencilState
     private let backgroundDepthState: MTLDepthStencilState
+    private var gridDepthState: MTLDepthStencilState?
+
+    /// Whether to render the ground plane grid.
+    public var showGrid: Bool = true
 
     // MARK: - Mesh Buffers
 
@@ -55,26 +67,33 @@ public class RenderPipeline {
 
         // Load the shader library from the Swift Package bundle.
         guard let library = try? device.makeDefaultLibrary(bundle: Bundle.module) else {
+            print("[RenderPipeline] ERROR: Could not load Metal shader library from bundle")
             return nil
         }
 
         // ── Solid fill pipeline ──────────────────────────────────────────
         guard let solidPSO = RenderPipeline.makeSolidPipeline(device: device, library: library) else {
+            print("[RenderPipeline] ERROR: Could not create solid pipeline")
             return nil
         }
         self.solidPipelineState = solidPSO
 
         // ── Edge (wireframe) pipeline ────────────────────────────────────
         guard let edgePSO = RenderPipeline.makeEdgePipeline(device: device, library: library) else {
+            print("[RenderPipeline] ERROR: Could not create edge pipeline")
             return nil
         }
         self.edgePipelineState = edgePSO
 
         // ── Background gradient pipeline ─────────────────────────────────
         guard let bgPSO = RenderPipeline.makeBackgroundPipeline(device: device, library: library) else {
+            print("[RenderPipeline] ERROR: Could not create background pipeline")
             return nil
         }
         self.backgroundPipelineState = bgPSO
+
+        // ── Grid plane pipeline (optional — doesn't block renderer) ─────
+        self.gridPipelineState = RenderPipeline.makeGridPipeline(device: device, library: library)
 
         // ── Depth / stencil states ───────────────────────────────────────
         let solidDepthDesc = MTLDepthStencilDescriptor()
@@ -94,6 +113,11 @@ public class RenderPipeline {
         bgDepthDesc.isDepthWriteEnabled = false
         guard let bgDS = device.makeDepthStencilState(descriptor: bgDepthDesc) else { return nil }
         self.backgroundDepthState = bgDS
+
+        let gridDepthDesc = MTLDepthStencilDescriptor()
+        gridDepthDesc.depthCompareFunction = .less
+        gridDepthDesc.isDepthWriteEnabled = true
+        self.gridDepthState = device.makeDepthStencilState(descriptor: gridDepthDesc)
     }
 
     // MARK: - Mesh Upload
@@ -145,8 +169,8 @@ public class RenderPipeline {
         guard let drawable = view.currentDrawable,
               let descriptor = view.currentRenderPassDescriptor else { return }
 
-        // Light gray clear color.
-        descriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0.75, green: 0.77, blue: 0.80, alpha: 1.0)
+        // Dark Pro clear color
+        descriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0.102, green: 0.102, blue: 0.102, alpha: 1.0)
         descriptor.colorAttachments[0].loadAction = .clear
         descriptor.colorAttachments[0].storeAction = .store
 
@@ -158,7 +182,27 @@ public class RenderPipeline {
         encoder.setDepthStencilState(backgroundDepthState)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
 
-        // ── 2. Solid model pass ──────────────────────────────────────────
+        // ── 2. Grid plane ────────────────────────────────────────────────
+        if showGrid, let gridPSO = gridPipelineState, let gridDS = gridDepthState {
+            let view4x4 = camera.viewMatrix()
+            let proj4x4 = camera.projectionMatrix()
+            let vp = proj4x4 * view4x4
+
+            let camPos = camera.position
+            var gridUniforms = GridUniforms(
+                viewProjection: vp,
+                cameraPositionPad: SIMD4<Float>(camPos.x, camPos.y, camPos.z, 0)
+            )
+
+            encoder.setRenderPipelineState(gridPSO)
+            encoder.setDepthStencilState(gridDS)
+            encoder.setCullMode(.none)
+            encoder.setVertexBytes(&gridUniforms, length: MemoryLayout<GridUniforms>.size, index: 0)
+            encoder.setFragmentBytes(&gridUniforms, length: MemoryLayout<GridUniforms>.size, index: 0)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 6)
+        }
+
+        // ── 3. Solid model pass ──────────────────────────────────────────
         if let vb = vertexBuffer, let ib = indexBuffer, indexCount > 0 {
             let view4x4 = camera.viewMatrix()
             let proj4x4 = camera.projectionMatrix()
@@ -174,7 +218,7 @@ public class RenderPipeline {
                 modelView: mv,
                 normalMatrix: normalMat,
                 lightDirection: lightDir,
-                modelColor: SIMD4<Float>(0.6, 0.72, 0.84, 1.0),  // soft blue-gray
+                modelColor: SIMD4<Float>(0.69, 0.69, 0.69, 1.0),  // neutral silver-gray #B0B0B0
                 isEdgePass: 0
             )
 
@@ -192,7 +236,7 @@ public class RenderPipeline {
                 indexBufferOffset: 0
             )
 
-            // ── 3. Edge overlay pass ─────────────────────────────────────
+            // ── 4. Edge overlay pass ─────────────────────────────────────
             var edgeUniforms = solidUniforms
             edgeUniforms.isEdgePass = 1
 
@@ -251,5 +295,19 @@ public class RenderPipeline {
         desc.depthAttachmentPixelFormat = .depth32Float
         return try? device.makeRenderPipelineState(descriptor: desc)
     }
-}
 
+    private static func makeGridPipeline(device: MTLDevice, library: MTLLibrary) -> MTLRenderPipelineState? {
+        let desc = MTLRenderPipelineDescriptor()
+        desc.vertexFunction = library.makeFunction(name: "grid_vertex")
+        desc.fragmentFunction = library.makeFunction(name: "grid_fragment")
+        desc.colorAttachments[0].pixelFormat = .bgra8Unorm
+        // Enable blending for semi-transparent grid
+        desc.colorAttachments[0].isBlendingEnabled = true
+        desc.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha
+        desc.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
+        desc.colorAttachments[0].sourceAlphaBlendFactor = .one
+        desc.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
+        desc.depthAttachmentPixelFormat = .depth32Float
+        return try? device.makeRenderPipelineState(descriptor: desc)
+    }
+}

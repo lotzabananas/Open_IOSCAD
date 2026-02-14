@@ -9,14 +9,15 @@ appId: com.openioscad.app
 - tapOn:
     id: "toolbar_add_button"
 
-# Start a new sketch on XY
+# Scroll to sketch section and start a new sketch on XY
+- scrollUntilVisible:
+    element:
+      id: "new_sketch_xy"
+    direction: DOWN
 - tapOn:
     id: "new_sketch_xy"
 
-# Verify sketch canvas is visible
+# Verify sketch canvas is visible (grid & drawing layer are non-interactive
+# Canvas views that don't appear in the accessibility tree)
 - assertVisible:
     id: "sketch_canvas"
-- assertVisible:
-    id: "sketch_grid"
-- assertVisible:
-    id: "sketch_drawing_layer"

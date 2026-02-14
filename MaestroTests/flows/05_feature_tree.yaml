@@ -20,6 +20,10 @@ appId: com.openioscad.app
 - tapOn:
     id: "add_cylinder_confirm"
 
+# Switch to Features tab
+- tapOn:
+    id: "toolbar_features_button"
+
 # Verify feature tree has items
 - assertVisible:
     id: "feature_tree_item_0"
