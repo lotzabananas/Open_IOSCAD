@@ -7,9 +7,12 @@ public enum ProfileExtractor {
     /// Number of segments to approximate a circle.
     private static let circleSegments = 32
 
+    /// Number of segments per 90 degrees for arc tessellation.
+    private static let arcSegmentsPer90 = 8
+
     /// Extract a Polygon2D from an array of sketch elements.
-    /// For Phase 1, handles single-element profiles: rectangle, circle,
-    /// and closed line-segment chains.
+    /// Handles single-element profiles, closed chains of lines and arcs,
+    /// and falls back to the first element for mixed cases.
     public static func extractProfile(from elements: [SketchElement]) -> Result<Polygon2D, ProfileError> {
         guard !elements.isEmpty else {
             return .failure(.emptySketch)
@@ -20,19 +23,19 @@ public enum ProfileExtractor {
             return extractSingleElement(elements[0])
         }
 
-        // Multiple elements: try to form a closed line-segment chain
-        let lineSegments = elements.compactMap { element -> (Point2D, Point2D)? in
-            if case .lineSegment(_, let start, let end) = element {
-                return (start, end)
+        // Multiple elements: try to form a closed chain of lines and arcs
+        let chainable = elements.allSatisfy { element in
+            switch element {
+            case .lineSegment, .arc: return true
+            default: return false
             }
-            return nil
         }
 
-        if lineSegments.count == elements.count && lineSegments.count >= 3 {
-            return extractClosedLineChain(lineSegments)
+        if chainable && elements.count >= 2 {
+            return extractClosedChain(elements)
         }
 
-        // Multiple non-line elements: extract first element as profile
+        // Multiple non-chainable elements: extract first element as profile
         return extractSingleElement(elements[0])
     }
 
@@ -46,6 +49,8 @@ public enum ProfileExtractor {
             return extractCircle(center: center, radius: radius)
         case .lineSegment:
             return .failure(.openProfile)
+        case .arc:
+            return .failure(.openProfile) // A single arc is not a closed profile
         }
     }
 
@@ -88,19 +93,47 @@ public enum ProfileExtractor {
         return .success(polygon)
     }
 
-    // MARK: - Closed Line Chain
+    // MARK: - Closed Chain (lines + arcs)
 
-    private static func extractClosedLineChain(_ segments: [(Point2D, Point2D)]) -> Result<Polygon2D, ProfileError> {
-        // Build an ordered point list from connected segments.
-        var remaining = segments
-        var orderedPoints: [Point2D] = []
-
-        guard let first = remaining.first else {
-            return .failure(.emptySketch)
+    /// Build an ordered point list from a closed chain of line segments and arcs.
+    private static func extractClosedChain(_ elements: [SketchElement]) -> Result<Polygon2D, ProfileError> {
+        // Build (start, end, tessellatedPoints) for each element
+        struct ChainSegment {
+            let start: Point2D
+            let end: Point2D
+            /// Interior points (excluding start, including end).
+            let points: [Point2D]
         }
-        orderedPoints.append(first.0)
-        orderedPoints.append(first.1)
-        remaining.removeFirst()
+
+        var remaining: [ChainSegment] = elements.compactMap { element in
+            switch element {
+            case .lineSegment(_, let s, let e):
+                return ChainSegment(start: s, end: e, points: [e])
+            case .arc(_, let center, let radius, let startAngle, let sweepAngle):
+                guard radius > 0, abs(sweepAngle) > 0 else { return nil }
+                let segments = max(2, Int(abs(sweepAngle) / 90.0 * Double(arcSegmentsPer90)))
+                var pts: [Point2D] = []
+                for i in 1...segments {
+                    let frac = Double(i) / Double(segments)
+                    let angle = (startAngle + sweepAngle * frac) * .pi / 180
+                    pts.append(Point2D(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle)))
+                }
+                let startRad = startAngle * .pi / 180
+                let s = Point2D(x: center.x + radius * cos(startRad), y: center.y + radius * sin(startRad))
+                let e = pts.last ?? s
+                return ChainSegment(start: s, end: e, points: pts)
+            default:
+                return nil
+            }
+        }
+
+        guard !remaining.isEmpty else { return .failure(.emptySketch) }
+
+        // Chain segments together
+        var orderedPoints: [Point2D] = []
+        let first = remaining.removeFirst()
+        orderedPoints.append(first.start)
+        orderedPoints.append(contentsOf: first.points)
 
         let tolerance = 1e-4
 
@@ -109,13 +142,18 @@ public enum ProfileExtractor {
             var found = false
 
             for (i, seg) in remaining.enumerated() {
-                if distance(currentEnd, seg.0) < tolerance {
-                    orderedPoints.append(seg.1)
+                if distance(currentEnd, seg.start) < tolerance {
+                    orderedPoints.append(contentsOf: seg.points)
                     remaining.remove(at: i)
                     found = true
                     break
-                } else if distance(currentEnd, seg.1) < tolerance {
-                    orderedPoints.append(seg.0)
+                } else if distance(currentEnd, seg.end) < tolerance {
+                    // Reverse: add points from end to start
+                    // seg.points excludes start, includes end.
+                    // Reversed: [end, ..., second_point]. First element (end) == currentEnd, drop it.
+                    let reversed = Array(seg.points.reversed())
+                    orderedPoints.append(contentsOf: reversed.dropFirst())
+                    orderedPoints.append(seg.start)
                     remaining.remove(at: i)
                     found = true
                     break
@@ -135,7 +173,7 @@ public enum ProfileExtractor {
         let first2D = orderedPoints.first!
         let last2D = orderedPoints.last!
         if distance(first2D, last2D) < tolerance {
-            orderedPoints.removeLast() // Remove duplicate closing point
+            orderedPoints.removeLast()
         }
 
         guard orderedPoints.count >= 3 else {
