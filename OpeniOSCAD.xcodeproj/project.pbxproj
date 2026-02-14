@@ -7,27 +7,50 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0F499534C23EDB37E83C2E3D /* Renderer in Frameworks */ = {isa = PBXBuildFile; productRef = E80E34D959CD01EB20F8EFDC /* Renderer */; };
+		0F499534C23EDB37E83C2E3D /* ParametricEngine in Frameworks */ = {isa = PBXBuildFile; productRef = 704AB2A34FECD9DBC2C73E4F /* ParametricEngine */; };
 		23E55F0E0F7C3F1560AA7F65 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AF961288383A2960FC21F6 /* ContentView.swift */; };
 		4C95E687F16FF39DA8942B9A /* ViewportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F089EE8BF621BA3A095A91DC /* ViewportView.swift */; };
+		56C50F33C0043314C2064343 /* CADDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECBA9CDE599DDA7D45B269F5 /* CADDocument.swift */; };
+		64F1740E32987A85447BA78C /* SketchCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B992B3AFEE410D3C5E052A5B /* SketchCanvasView.swift */; };
+		88F5A7C2BE51004507B72084 /* SketchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBA2C2433FF858D22D035B8B /* SketchViewModel.swift */; };
 		9964134A58CBAB1EEEC749E4 /* AddPrimitiveSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D413721D8959A01ABB9BE991 /* AddPrimitiveSheet.swift */; };
 		9F990A38C2287BA6AD62A07F /* FeatureTreeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E0D7EEEA45D5C903102FF5 /* FeatureTreeView.swift */; };
 		A14D2D8E8B601E5C49FA77C5 /* OpeniOSCADApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B07A71C1C4334C79862FE7 /* OpeniOSCADApp.swift */; };
 		AC7CD1EDB022C1F30B39A3D1 /* ExportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F64B5F02929734534D0E2B9D /* ExportSheet.swift */; };
 		D24118D8B84F7C7A109957AF /* ToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8276925FD48E03384B592D1E /* ToolbarView.swift */; };
+		E3AB99076EB28D8D58C87C24 /* PropertyInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D94E93CD22D6EFA7E7EB99D /* PropertyInspectorView.swift */; };
+		E4CDDBC67790719118499F3D /* SketchToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 791C6AA46B403C21C6A884E9 /* SketchToolbar.swift */; };
 		E6941CBD1EAB540F4943E3C9 /* ModelViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46179B6266220A2BF40AEAF8 /* ModelViewModel.swift */; };
-		EAD511EB0707329DCD3CBAFE /* GeometryKernel in Frameworks */ = {isa = PBXBuildFile; productRef = CD479126DE10771A5218A300 /* GeometryKernel */; };
+		EAD511EB0707329DCD3CBAFE /* Renderer in Frameworks */ = {isa = PBXBuildFile; productRef = E80E34D959CD01EB20F8EFDC /* Renderer */; };
+		EB030FC6FE0F693B1BCF1DF8 /* GeometryKernel in Frameworks */ = {isa = PBXBuildFile; productRef = CD479126DE10771A5218A300 /* GeometryKernel */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AFF2E6AE3B6077205B8ABEDE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A9D1707FFF7A0E078CB037F6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 952DBC3D443ED4337101F9EB;
+			remoteInfo = OpeniOSCAD;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		0ABA511F8BCB29C3BC4379D1 /* GeometryKernel */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GeometryKernel; path = GeometryKernel; sourceTree = SOURCE_ROOT; };
+		0D94E93CD22D6EFA7E7EB99D /* PropertyInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyInspectorView.swift; sourceTree = "<group>"; };
 		1294C04AFB3D619536486B1B /* OpeniOSCAD.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OpeniOSCAD.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D968C202BDA32BADCB54359 /* Renderer */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Renderer; path = Renderer; sourceTree = SOURCE_ROOT; };
 		42E0D7EEEA45D5C903102FF5 /* FeatureTreeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureTreeView.swift; sourceTree = "<group>"; };
 		46179B6266220A2BF40AEAF8 /* ModelViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelViewModel.swift; sourceTree = "<group>"; };
+		791C6AA46B403C21C6A884E9 /* SketchToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchToolbar.swift; sourceTree = "<group>"; };
 		8276925FD48E03384B592D1E /* ToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolbarView.swift; sourceTree = "<group>"; };
+		988EA7E86EE020DE68160C8F /* OpeniOSCADTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = OpeniOSCADTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A8B07A71C1C4334C79862FE7 /* OpeniOSCADApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpeniOSCADApp.swift; sourceTree = "<group>"; };
+		B992B3AFEE410D3C5E052A5B /* SketchCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchCanvasView.swift; sourceTree = "<group>"; };
+		C44B57C404EB6A6AF1B23A29 /* ParametricEngine */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ParametricEngine; path = ParametricEngine; sourceTree = SOURCE_ROOT; };
 		D413721D8959A01ABB9BE991 /* AddPrimitiveSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddPrimitiveSheet.swift; sourceTree = "<group>"; };
+		EBA2C2433FF858D22D035B8B /* SketchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SketchViewModel.swift; sourceTree = "<group>"; };
+		ECBA9CDE599DDA7D45B269F5 /* CADDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CADDocument.swift; sourceTree = "<group>"; };
 		F089EE8BF621BA3A095A91DC /* ViewportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewportView.swift; sourceTree = "<group>"; };
 		F4AF961288383A2960FC21F6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F64B5F02929734534D0E2B9D /* ExportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportSheet.swift; sourceTree = "<group>"; };
@@ -38,18 +61,28 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EAD511EB0707329DCD3CBAFE /* GeometryKernel in Frameworks */,
-				0F499534C23EDB37E83C2E3D /* Renderer in Frameworks */,
+				EB030FC6FE0F693B1BCF1DF8 /* GeometryKernel in Frameworks */,
+				EAD511EB0707329DCD3CBAFE /* Renderer in Frameworks */,
+				0F499534C23EDB37E83C2E3D /* ParametricEngine in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0DD996CF381F46CE6B7B698B /* Document */ = {
+			isa = PBXGroup;
+			children = (
+				ECBA9CDE599DDA7D45B269F5 /* CADDocument.swift */,
+			);
+			path = Document;
+			sourceTree = "<group>";
+		};
 		23BE7F37B87040346F5D1DA7 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
 				0ABA511F8BCB29C3BC4379D1 /* GeometryKernel */,
+				C44B57C404EB6A6AF1B23A29 /* ParametricEngine */,
 				3D968C202BDA32BADCB54359 /* Renderer */,
 			);
 			name = Packages;
@@ -61,6 +94,8 @@
 				F4AF961288383A2960FC21F6 /* ContentView.swift */,
 				46179B6266220A2BF40AEAF8 /* ModelViewModel.swift */,
 				A8B07A71C1C4334C79862FE7 /* OpeniOSCADApp.swift */,
+				0DD996CF381F46CE6B7B698B /* Document */,
+				4B071429389D882F08D5282E /* ViewModels */,
 				443D8941000B3D0E4E9EB58F /* Views */,
 			);
 			path = OpeniOSCAD;
@@ -72,16 +107,35 @@
 				D413721D8959A01ABB9BE991 /* AddPrimitiveSheet.swift */,
 				F64B5F02929734534D0E2B9D /* ExportSheet.swift */,
 				42E0D7EEEA45D5C903102FF5 /* FeatureTreeView.swift */,
+				0D94E93CD22D6EFA7E7EB99D /* PropertyInspectorView.swift */,
+				B992B3AFEE410D3C5E052A5B /* SketchCanvasView.swift */,
+				791C6AA46B403C21C6A884E9 /* SketchToolbar.swift */,
 				8276925FD48E03384B592D1E /* ToolbarView.swift */,
 				F089EE8BF621BA3A095A91DC /* ViewportView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
 		};
+		4B071429389D882F08D5282E /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				EBA2C2433FF858D22D035B8B /* SketchViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		8BAAF081C2570971C7E5EE48 /* OpeniOSCADTests */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = OpeniOSCADTests;
+			sourceTree = "<group>";
+		};
 		B914BE975D248515CF1532F4 = {
 			isa = PBXGroup;
 			children = (
 				272154C3FDCC7258F8DD72F7 /* OpeniOSCAD */,
+				8BAAF081C2570971C7E5EE48 /* OpeniOSCADTests */,
 				23BE7F37B87040346F5D1DA7 /* Packages */,
 				FB420D8F7258900241FF8785 /* Products */,
 			);
@@ -91,6 +145,7 @@
 			isa = PBXGroup;
 			children = (
 				1294C04AFB3D619536486B1B /* OpeniOSCAD.app */,
+				988EA7E86EE020DE68160C8F /* OpeniOSCADTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -98,6 +153,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		3A8E1C68CFEBA009FF3D5228 /* OpeniOSCADTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5BB6ABF639328B722A5CC6CF /* Build configuration list for PBXNativeTarget "OpeniOSCADTests" */;
+			buildPhases = (
+				5748DD4B3A92E0DCA0AE2A5A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5010A4AC9CA0A53655B2198B /* PBXTargetDependency */,
+			);
+			name = OpeniOSCADTests;
+			packageProductDependencies = (
+			);
+			productName = OpeniOSCADTests;
+			productReference = 988EA7E86EE020DE68160C8F /* OpeniOSCADTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		952DBC3D443ED4337101F9EB /* OpeniOSCAD */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 785C5B617613D88F938E4108 /* Build configuration list for PBXNativeTarget "OpeniOSCAD" */;
@@ -113,6 +186,7 @@
 			packageProductDependencies = (
 				CD479126DE10771A5218A300 /* GeometryKernel */,
 				E80E34D959CD01EB20F8EFDC /* Renderer */,
+				704AB2A34FECD9DBC2C73E4F /* ParametricEngine */,
 			);
 			productName = OpeniOSCAD;
 			productReference = 1294C04AFB3D619536486B1B /* OpeniOSCAD.app */;
@@ -139,6 +213,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				54F6F0926EAD38AC7BA889D1 /* XCLocalSwiftPackageReference "GeometryKernel" */,
+				513F32E5F1F2990BE35C8688 /* XCLocalSwiftPackageReference "ParametricEngine" */,
 				78B80904118E3AF22568E9B9 /* XCLocalSwiftPackageReference "Renderer" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -146,27 +221,48 @@
 			projectRoot = "";
 			targets = (
 				952DBC3D443ED4337101F9EB /* OpeniOSCAD */,
+				3A8E1C68CFEBA009FF3D5228 /* OpeniOSCADTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		5748DD4B3A92E0DCA0AE2A5A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B1B473B66F5452A0D5E417E7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				9964134A58CBAB1EEEC749E4 /* AddPrimitiveSheet.swift in Sources */,
+				56C50F33C0043314C2064343 /* CADDocument.swift in Sources */,
 				23E55F0E0F7C3F1560AA7F65 /* ContentView.swift in Sources */,
 				AC7CD1EDB022C1F30B39A3D1 /* ExportSheet.swift in Sources */,
 				9F990A38C2287BA6AD62A07F /* FeatureTreeView.swift in Sources */,
 				E6941CBD1EAB540F4943E3C9 /* ModelViewModel.swift in Sources */,
 				A14D2D8E8B601E5C49FA77C5 /* OpeniOSCADApp.swift in Sources */,
+				E3AB99076EB28D8D58C87C24 /* PropertyInspectorView.swift in Sources */,
+				64F1740E32987A85447BA78C /* SketchCanvasView.swift in Sources */,
+				E4CDDBC67790719118499F3D /* SketchToolbar.swift in Sources */,
+				88F5A7C2BE51004507B72084 /* SketchViewModel.swift in Sources */,
 				D24118D8B84F7C7A109957AF /* ToolbarView.swift in Sources */,
 				4C95E687F16FF39DA8942B9A /* ViewportView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5010A4AC9CA0A53655B2198B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 952DBC3D443ED4337101F9EB /* OpeniOSCAD */;
+			targetProxy = AFF2E6AE3B6077205B8ABEDE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		24A69C6844FC351EBA6BA4EA /* Debug */ = {
@@ -175,7 +271,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDocumentTypes = "({CFBundleTypeName = 'STEP File'; LSHandlerRank = Owner; LSItemContentTypes = ('public.step', 'public.text');})";
+				INFOPLIST_KEY_CFBundleDocumentTypes = "({CFBundleTypeName = 'STEP File'; LSHandlerRank = Owner; LSItemContentTypes = ('com.openioscad.step', 'public.step', 'public.text');})";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -201,7 +297,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDocumentTypes = "({CFBundleTypeName = 'STEP File'; LSHandlerRank = Owner; LSItemContentTypes = ('public.step', 'public.text');})";
+				INFOPLIST_KEY_CFBundleDocumentTypes = "({CFBundleTypeName = 'STEP File'; LSHandlerRank = Owner; LSItemContentTypes = ('com.openioscad.step', 'public.step', 'public.text');})";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -277,6 +373,23 @@
 			};
 			name = Release;
 		};
+		83FA5044E63688C36FB5655F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.openioscad.OpeniOSCADTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpeniOSCAD.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OpeniOSCAD";
+			};
+			name = Release;
+		};
 		E12AD1574FCF2843DA2FEA4D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -340,6 +453,23 @@
 			};
 			name = Debug;
 		};
+		EC59F0D17432D5DF5CA6FAF3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.openioscad.OpeniOSCADTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/OpeniOSCAD.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/OpeniOSCAD";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -348,6 +478,15 @@
 			buildConfigurations = (
 				E12AD1574FCF2843DA2FEA4D /* Debug */,
 				729B9F8AE972097902ABB9C2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5BB6ABF639328B722A5CC6CF /* Build configuration list for PBXNativeTarget "OpeniOSCADTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EC59F0D17432D5DF5CA6FAF3 /* Debug */,
+				83FA5044E63688C36FB5655F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -364,6 +503,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		513F32E5F1F2990BE35C8688 /* XCLocalSwiftPackageReference "ParametricEngine" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ParametricEngine;
+		};
 		54F6F0926EAD38AC7BA889D1 /* XCLocalSwiftPackageReference "GeometryKernel" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = GeometryKernel;
@@ -375,6 +518,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		704AB2A34FECD9DBC2C73E4F /* ParametricEngine */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ParametricEngine;
+		};
 		CD479126DE10771A5218A300 /* GeometryKernel */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = GeometryKernel;

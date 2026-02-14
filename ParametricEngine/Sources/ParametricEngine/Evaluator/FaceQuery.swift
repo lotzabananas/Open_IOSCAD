@@ -1,5 +1,6 @@
 import Foundation
 import GeometryKernel
+import simd
 
 /// Extracts geometric properties from triangle mesh faces.
 /// Used to compute sketch plane transforms for face-based sketching.

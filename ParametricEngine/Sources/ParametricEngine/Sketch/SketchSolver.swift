@@ -128,7 +128,7 @@ public enum SketchSolver {
     // MARK: - Parameterization
 
     /// Number of scalar parameters for an element.
-    static func paramCount(for element: SketchElement) -> Int {
+    public static func paramCount(for element: SketchElement) -> Int {
         switch element {
         case .rectangle: return 4   // origin.x, origin.y, width, height
         case .circle: return 3      // center.x, center.y, radius

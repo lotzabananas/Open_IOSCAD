@@ -1,6 +1,7 @@
 import XCTest
 @testable import ParametricEngine
 import GeometryKernel
+import simd
 
 final class FaceQueryTests: XCTestCase {
 

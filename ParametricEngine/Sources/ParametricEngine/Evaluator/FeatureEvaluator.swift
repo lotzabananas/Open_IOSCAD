@@ -1,5 +1,6 @@
 import Foundation
 import GeometryKernel
+import simd
 
 /// Evaluates a FeatureTree top-to-bottom, producing a TriangleMesh.
 ///
@@ -37,15 +38,15 @@ public final class FeatureEvaluator {
         var featureMeshes: [FeatureID: TriangleMesh] = [:]
         var meshOperations: [FeatureID: MeshOperation] = [:]
         var errors: [EvaluationError] = []
+        // Track feature order for Pass 2 combination (only geometry-producing features)
+        var featureOrder: [FeatureID] = []
 
         // ── Pass 1: produce per-feature meshes ──
 
-        // Track accumulated mesh for face-based plane queries
-        var runningMesh = TriangleMesh()
+        // Track accumulated mesh for face-based plane queries (approximate, uses untransformed)
+        accumulatedMeshForFace = TriangleMesh()
 
         for feature in tree.activeFeatures {
-            // Make the current accumulated mesh available for face-based sketch planes
-            accumulatedMeshForFace = runningMesh
             switch feature {
             case .sketch(let sketch):
                 let result = evaluateSketch(sketch)
@@ -78,6 +79,7 @@ public final class FeatureEvaluator {
                 featureMeshes[extrude.id] = extrudedMesh
                 meshOperations[extrude.id] = extrude.operation == .additive
                     ? .additive : .subtractive
+                featureOrder.append(extrude.id)
 
             case .revolve(let revolve):
                 guard let polygon = sketchProfiles[revolve.sketchID] else {
@@ -98,6 +100,7 @@ public final class FeatureEvaluator {
                 featureMeshes[revolve.id] = revolvedMesh
                 meshOperations[revolve.id] = revolve.operation == .additive
                     ? .additive : .subtractive
+                featureOrder.append(revolve.id)
 
             case .transform(let transform):
                 guard let targetMesh = featureMeshes[transform.targetID] else {
@@ -118,7 +121,6 @@ public final class FeatureEvaluator {
                 }
 
                 // Replace the target's mesh with the transformed version.
-                // The target keeps its original operation (additive/subtractive).
                 featureMeshes[transform.targetID] = transformedMesh
 
             case .boolean(let boolean):
@@ -138,36 +140,41 @@ public final class FeatureEvaluator {
                 let boolType = kernelBooleanType(boolean.booleanType)
                 let result = CSGOperations.perform(boolType, on: targetMeshes)
 
-                // Remove the consumed targets and store the boolean result
+                // Remove the consumed targets from the combination order
                 for id in boolean.targetIDs {
                     featureMeshes.removeValue(forKey: id)
                     meshOperations.removeValue(forKey: id)
+                    featureOrder.removeAll { $0 == id }
                 }
 
                 featureMeshes[boolean.id] = result
                 meshOperations[boolean.id] = .additive
-            }
-
-            // Update running mesh for face-based plane resolution
-            if let mesh = featureMeshes[feature.id], !mesh.isEmpty {
-                let op = meshOperations[feature.id] ?? .additive
-                switch op {
-                case .additive:
-                    if runningMesh.isEmpty {
-                        runningMesh = mesh
-                    } else {
-                        runningMesh = CSGOperations.perform(.union, on: [runningMesh, mesh])
-                    }
-                case .subtractive:
-                    if !runningMesh.isEmpty {
-                        runningMesh = CSGOperations.perform(.difference, on: [runningMesh, mesh])
-                    }
-                }
+                featureOrder.append(boolean.id)
             }
         }
 
-        // runningMesh already has all features combined in tree order from Pass 1.
-        return EvaluationResult(mesh: runningMesh, errors: errors)
+        // ── Pass 2: combine per-feature meshes in tree order ──
+        var finalMesh = TriangleMesh()
+        for fid in featureOrder {
+            guard let mesh = featureMeshes[fid], !mesh.isEmpty else { continue }
+            let op = meshOperations[fid] ?? .additive
+            switch op {
+            case .additive:
+                if finalMesh.isEmpty {
+                    finalMesh = mesh
+                } else {
+                    finalMesh = CSGOperations.perform(.union, on: [finalMesh, mesh])
+                }
+            case .subtractive:
+                if !finalMesh.isEmpty {
+                    finalMesh = CSGOperations.perform(.difference, on: [finalMesh, mesh])
+                }
+            }
+            // Update accumulated mesh for face-based plane queries
+            accumulatedMeshForFace = finalMesh
+        }
+
+        return EvaluationResult(mesh: finalMesh, errors: errors)
     }
 
     // MARK: - Private

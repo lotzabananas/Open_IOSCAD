@@ -1,5 +1,6 @@
 import Foundation
 import GeometryKernel
+import simd
 
 /// Persistent naming scheme for mesh faces and edges that survives feature tree mutations.
 ///

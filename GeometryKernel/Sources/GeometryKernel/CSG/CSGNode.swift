@@ -86,15 +86,14 @@ public enum CSGOperations {
             return result
 
         case .intersection:
-            bspA.invert()
-            bspB.clipTo(&bspA)
-            bspB.invert()
-            bspA.clipTo(&bspB)
-            bspB.clipTo(&bspA)
-            let allPolys = bspA.allPolygons() + bspB.allPolygons()
-            var result = polygonsToMesh(allPolys)
-            result.flipWinding()
-            return result
+            // Intersection: keep A's faces inside B, keep B's faces inside A.
+            // Use fresh BSP trees so clipping one doesn't affect the other's structure.
+            var bspAForClipB = BSPNode(polygons: polysA)
+            bspA.clipToInverse(&bspB)
+            let bspB2 = BSPNode(polygons: polysB)
+            bspB2.clipToInverse(&bspAForClipB)
+            let allPolys = bspA.allPolygons() + bspB2.allPolygons()
+            return polygonsToMesh(allPolys)
         }
     }
 }
@@ -292,10 +291,35 @@ class BSPNode {
         return frontPolys + backPolys
     }
 
+    /// Inverse of clipPolygons: keeps polygons INSIDE the BSP tree, removes those outside.
+    func clipPolygonsInverse(_ polys: [BSPPolygon]) -> [BSPPolygon] {
+        guard let plane = plane else { return [] }
+
+        var frontPolys: [BSPPolygon] = []
+        var backPolys: [BSPPolygon] = []
+
+        for poly in polys {
+            let (f, b) = plane.split(poly)
+            frontPolys += f
+            backPolys += b
+        }
+
+        frontPolys = front?.clipPolygonsInverse(frontPolys) ?? []
+        backPolys = back?.clipPolygonsInverse(backPolys) ?? backPolys
+
+        return frontPolys + backPolys
+    }
+
     func clipTo(_ other: inout BSPNode) {
         polygons = other.clipPolygons(polygons)
         front?.clipTo(&other)
         back?.clipTo(&other)
+    }
+
+    func clipToInverse(_ other: inout BSPNode) {
+        polygons = other.clipPolygonsInverse(polygons)
+        front?.clipToInverse(&other)
+        back?.clipToInverse(&other)
     }
 }
 
