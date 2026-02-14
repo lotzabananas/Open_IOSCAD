@@ -199,6 +199,70 @@ public final class FeatureEvaluator {
                 )
                 featureMeshes[shell.targetID] = shelledMesh
 
+            case .sweep(let sweep):
+                guard let profilePoly = sketchProfiles[sweep.profileSketchID] else {
+                    errors.append(.missingReference(
+                        featureName: sweep.name,
+                        referencedID: sweep.profileSketchID,
+                        detail: "Sweep profile sketch not found or suppressed"
+                    ))
+                    continue
+                }
+                guard let pathPoly = sketchProfiles[sweep.pathSketchID] else {
+                    errors.append(.missingReference(
+                        featureName: sweep.name,
+                        referencedID: sweep.pathSketchID,
+                        detail: "Sweep path sketch not found or suppressed"
+                    ))
+                    continue
+                }
+
+                // Convert path polygon to 3D path points
+                let pathPoints = pathPoly.points.map { SIMD3<Float>($0.x, $0.y, 0) }
+                let sweptMesh = SweepExtrudeOperation.sweep(
+                    polygon: profilePoly,
+                    path: pathPoints,
+                    twist: Float(sweep.twist),
+                    scaleEnd: Float(sweep.scaleEnd)
+                )
+
+                featureMeshes[sweep.id] = sweptMesh
+                meshOperations[sweep.id] = sweep.operation == .additive ? .additive : .subtractive
+                featureOrder.append(sweep.id)
+
+            case .loft(let loft):
+                var profiles: [Polygon2D] = []
+                for sketchID in loft.profileSketchIDs {
+                    guard let poly = sketchProfiles[sketchID] else {
+                        errors.append(.missingReference(
+                            featureName: loft.name,
+                            referencedID: sketchID,
+                            detail: "Loft profile sketch not found or suppressed"
+                        ))
+                        continue
+                    }
+                    profiles.append(poly)
+                }
+
+                guard profiles.count >= 2, profiles.count == loft.heights.count else {
+                    errors.append(.invalidParameter(
+                        featureName: loft.name,
+                        parameterName: "profiles",
+                        detail: "Loft requires at least 2 profiles with matching heights"
+                    ))
+                    continue
+                }
+
+                let loftedMesh = LoftExtrudeOperation.loft(
+                    profiles: profiles,
+                    heights: loft.heights.map { Float($0) },
+                    slicesPerSpan: loft.slicesPerSpan
+                )
+
+                featureMeshes[loft.id] = loftedMesh
+                meshOperations[loft.id] = loft.operation == .additive ? .additive : .subtractive
+                featureOrder.append(loft.id)
+
             case .pattern(let pattern):
                 guard let sourceMesh = featureMeshes[pattern.sourceID] else {
                     errors.append(.missingReference(

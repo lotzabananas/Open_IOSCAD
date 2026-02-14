@@ -24,6 +24,10 @@ struct AddShapeSheet: View {
     @State private var patternCount: Double = 3
     @State private var patternSpacing: Double = 20.0
 
+    // AI prompt
+    @State private var aiPrompt: String = ""
+    @State private var aiResult: String?
+
     @State private var expandedSection: String?
 
     var body: some View {
@@ -217,6 +221,31 @@ struct AddShapeSheet: View {
                         Label("Mirror", systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right")
                     }
                     .accessibilityIdentifier("add_mirror_pattern")
+                }
+
+                Section("AI Generate") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        TextField("Describe what to create...", text: $aiPrompt)
+                            .textFieldStyle(.roundedBorder)
+                            .accessibilityIdentifier("ai_prompt_field")
+
+                        Button("Generate") {
+                            if let description = viewModel.generateFromPrompt(aiPrompt) {
+                                aiResult = description
+                                dismiss()
+                            } else {
+                                aiResult = "Could not understand prompt. Try: 'box 30x20x10' or 'cylinder radius 5 height 20'"
+                            }
+                        }
+                        .disabled(aiPrompt.isEmpty)
+                        .accessibilityIdentifier("ai_generate_button")
+
+                        if let result = aiResult {
+                            Text(result)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
 
                 Section("Sketch") {

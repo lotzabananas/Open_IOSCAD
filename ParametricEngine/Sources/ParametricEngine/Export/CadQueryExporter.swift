@@ -92,6 +92,14 @@ public enum CadQueryExporter {
                 case .mirror:
                     lines.append("\(indent)result = result.mirror(\"XY\")")
                 }
+
+            case .sweep:
+                lines.append("\(indent)# Sweep: profile along path")
+                lines.append("\(indent)# result = result.sweep(path, ...)")
+
+            case .loft:
+                lines.append("\(indent)# Loft: blend between profiles")
+                lines.append("\(indent)# result = cq.Workplane().loft([profile1, profile2])")
             }
         }
 

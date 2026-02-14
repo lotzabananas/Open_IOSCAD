@@ -64,6 +64,14 @@ struct PropertyInspectorView: View {
                         PatternInspector(pattern: pattern, onUpdate: { updated in
                             onUpdate(.pattern(updated))
                         })
+                    case .sweep(let sweep):
+                        SweepInspector(sweep: sweep, onUpdate: { updated in
+                            onUpdate(.sweep(updated))
+                        })
+                    case .loft(let loft):
+                        LoftInspector(loft: loft, onUpdate: { updated in
+                            onUpdate(.loft(updated))
+                        })
                     }
                 }
                 .padding()
@@ -484,6 +492,84 @@ private struct PatternInspector: View {
                     onUpdate(updated)
                 }
             }
+        }
+    }
+}
+
+// MARK: - Sweep Inspector
+
+private struct SweepInspector: View {
+    let sweep: SweepFeature
+    let onUpdate: (SweepFeature) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Sweep (Profile Along Path)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            NumericField("Twist", value: sweep.twist, identifier: "sweep_twist") { newVal in
+                var updated = sweep
+                updated.twist = newVal
+                onUpdate(updated)
+            }
+            NumericField("End Scale", value: sweep.scaleEnd, identifier: "sweep_scale_end") { newVal in
+                var updated = sweep
+                updated.scaleEnd = max(0.01, newVal)
+                onUpdate(updated)
+            }
+            Picker("Operation", selection: Binding(
+                get: { sweep.operation },
+                set: { newOp in
+                    var updated = sweep
+                    updated.operation = newOp
+                    onUpdate(updated)
+                }
+            )) {
+                Text("Additive").tag(ExtrudeFeature.Operation.additive)
+                Text("Subtractive").tag(ExtrudeFeature.Operation.subtractive)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("sweep_operation_picker")
+        }
+    }
+}
+
+// MARK: - Loft Inspector
+
+private struct LoftInspector: View {
+    let loft: LoftFeature
+    let onUpdate: (LoftFeature) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Loft (Blend Profiles)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Text("\(loft.profileSketchIDs.count) profiles")
+                .font(.caption)
+                .accessibilityIdentifier("loft_profile_count")
+
+            NumericField("Slices", value: Double(loft.slicesPerSpan), identifier: "loft_slices") { newVal in
+                var updated = loft
+                updated.slicesPerSpan = max(1, Int(newVal))
+                onUpdate(updated)
+            }
+
+            Picker("Operation", selection: Binding(
+                get: { loft.operation },
+                set: { newOp in
+                    var updated = loft
+                    updated.operation = newOp
+                    onUpdate(updated)
+                }
+            )) {
+                Text("Additive").tag(ExtrudeFeature.Operation.additive)
+                Text("Subtractive").tag(ExtrudeFeature.Operation.subtractive)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("loft_operation_picker")
         }
     }
 }

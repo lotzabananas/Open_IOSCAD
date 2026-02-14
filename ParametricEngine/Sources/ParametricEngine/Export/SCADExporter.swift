@@ -99,6 +99,14 @@ public enum SCADExporter {
                     lines.append("mirror([\(formatNum(pattern.directionX)), \(formatNum(pattern.directionY)), \(formatNum(pattern.directionZ))])")
                     lines.append("    children();")
                 }
+
+            case .sweep:
+                lines.append("// Sweep: not directly supported in OpenSCAD")
+                lines.append("// Use path_extrude from external libraries")
+
+            case .loft:
+                lines.append("// Loft: not directly supported in OpenSCAD")
+                lines.append("// Use hull() or skin() from external libraries")
             }
 
             lines.append("")

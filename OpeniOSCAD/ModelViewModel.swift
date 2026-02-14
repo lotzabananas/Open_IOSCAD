@@ -43,6 +43,8 @@ final class ModelViewModel: ObservableObject {
     private var chamferCounter = 0
     private var shellCounter = 0
     private var patternCounter = 0
+    private var sweepCounter = 0
+    private var loftCounter = 0
 
     init() {
         pushUndoSnapshot()
@@ -90,6 +92,12 @@ final class ModelViewModel: ObservableObject {
             case .circular: return "Circular \(p.count)x"
             case .mirror: return "Mirror"
             }
+        case .sweep(let s):
+            let opLabel = s.operation == .additive ? "Add" : "Cut"
+            return "\(opLabel) sweep"
+        case .loft(let l):
+            let opLabel = l.operation == .additive ? "Add" : "Cut"
+            return "\(opLabel) \(l.profileSketchIDs.count) profiles"
         }
     }
 
@@ -360,6 +368,26 @@ final class ModelViewModel: ObservableObject {
         reevaluate()
     }
 
+    // MARK: - AI Feature Generation
+
+    /// Generate features from a natural language prompt using the built-in template engine.
+    func generateFromPrompt(_ prompt: String) -> String? {
+        do {
+            let result = try FeatureGenerator.generate(from: prompt)
+            for feature in result.features {
+                featureTree.append(feature)
+            }
+            if !result.features.isEmpty {
+                showAddMenu = false
+                pushUndoSnapshot()
+                reevaluate()
+            }
+            return result.description
+        } catch {
+            return nil
+        }
+    }
+
     /// Finds the last geometry-producing feature ID (extrude, revolve, or boolean).
     private func lastGeometryFeatureID() -> FeatureID? {
         featureTree.features.last(where: {
@@ -594,6 +622,8 @@ final class ModelViewModel: ObservableObject {
         chamferCounter = featureTree.features.filter { $0.kind == .chamfer }.count
         shellCounter = featureTree.features.filter { $0.kind == .shell }.count
         patternCounter = featureTree.features.filter { $0.kind == .pattern }.count
+        sweepCounter = featureTree.features.filter { $0.kind == .sweep }.count
+        loftCounter = featureTree.features.filter { $0.kind == .loft }.count
     }
 
     // MARK: - Face/Edge Selection

@@ -28,6 +28,8 @@ public enum FeatureKind: String, Codable, Sendable, CaseIterable {
     case chamfer
     case shell
     case pattern
+    case sweep
+    case loft
 }
 
 /// Type-erased wrapper for Feature, enabling heterogeneous collections
@@ -42,6 +44,8 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
     case chamfer(ChamferFeature)
     case shell(ShellFeature)
     case pattern(PatternFeature)
+    case sweep(SweepFeature)
+    case loft(LoftFeature)
 
     public var id: FeatureID {
         switch self {
@@ -54,6 +58,8 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
         case .chamfer(let f): return f.id
         case .shell(let f): return f.id
         case .pattern(let f): return f.id
+        case .sweep(let f): return f.id
+        case .loft(let f): return f.id
         }
     }
 
@@ -69,6 +75,8 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .chamfer(let f): return f.name
             case .shell(let f): return f.name
             case .pattern(let f): return f.name
+            case .sweep(let f): return f.name
+            case .loft(let f): return f.name
             }
         }
         set {
@@ -82,6 +90,8 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .chamfer(var f): f.name = newValue; self = .chamfer(f)
             case .shell(var f): f.name = newValue; self = .shell(f)
             case .pattern(var f): f.name = newValue; self = .pattern(f)
+            case .sweep(var f): f.name = newValue; self = .sweep(f)
+            case .loft(var f): f.name = newValue; self = .loft(f)
             }
         }
     }
@@ -98,6 +108,8 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .chamfer(let f): return f.isSuppressed
             case .shell(let f): return f.isSuppressed
             case .pattern(let f): return f.isSuppressed
+            case .sweep(let f): return f.isSuppressed
+            case .loft(let f): return f.isSuppressed
             }
         }
         set {
@@ -111,6 +123,8 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .chamfer(var f): f.isSuppressed = newValue; self = .chamfer(f)
             case .shell(var f): f.isSuppressed = newValue; self = .shell(f)
             case .pattern(var f): f.isSuppressed = newValue; self = .pattern(f)
+            case .sweep(var f): f.isSuppressed = newValue; self = .sweep(f)
+            case .loft(var f): f.isSuppressed = newValue; self = .loft(f)
             }
         }
     }
@@ -126,6 +140,8 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
         case .chamfer: return .chamfer
         case .shell: return .shell
         case .pattern: return .pattern
+        case .sweep: return .sweep
+        case .loft: return .loft
         }
     }
 
@@ -157,6 +173,10 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             self = .shell(try ShellFeature(from: decoder))
         case .pattern:
             self = .pattern(try PatternFeature(from: decoder))
+        case .sweep:
+            self = .sweep(try SweepFeature(from: decoder))
+        case .loft:
+            self = .loft(try LoftFeature(from: decoder))
         }
     }
 
@@ -189,6 +209,12 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             try f.encode(to: encoder)
         case .pattern(let f):
             try container.encode(FeatureKind.pattern, forKey: .type)
+            try f.encode(to: encoder)
+        case .sweep(let f):
+            try container.encode(FeatureKind.sweep, forKey: .type)
+            try f.encode(to: encoder)
+        case .loft(let f):
+            try container.encode(FeatureKind.loft, forKey: .type)
             try f.encode(to: encoder)
         }
     }
