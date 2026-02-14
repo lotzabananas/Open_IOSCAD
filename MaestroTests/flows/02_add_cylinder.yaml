@@ -1,0 +1,23 @@
+appId: com.openioscad.app
+---
+# Flow: Add a Cylinder primitive
+# Verifies cylinder creation with parameters
+
+- launchApp
+
+- tapOn:
+    id: "toolbar_add_button"
+
+- tapOn:
+    id: "add_cylinder_section"
+
+- assertVisible:
+    id: "cyl_radius"
+- assertVisible:
+    id: "cyl_height"
+
+- tapOn:
+    id: "add_cylinder_confirm"
+
+- assertVisible:
+    id: "viewport_view"

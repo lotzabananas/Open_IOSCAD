@@ -1,0 +1,22 @@
+appId: com.openioscad.app
+---
+# Flow: AI Generate
+# Verifies the AI prompt field and generate button exist
+
+- launchApp
+
+# Open add menu
+- tapOn:
+    id: "toolbar_add_button"
+
+# Scroll down to AI section
+- scrollUntilVisible:
+    element:
+      id: "ai_prompt_field"
+    direction: DOWN
+
+# Verify AI generate UI
+- assertVisible:
+    id: "ai_prompt_field"
+- assertVisible:
+    id: "ai_generate_button"

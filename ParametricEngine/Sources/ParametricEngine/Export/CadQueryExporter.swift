@@ -100,6 +100,10 @@ public enum CadQueryExporter {
             case .loft:
                 lines.append("\(indent)# Loft: blend between profiles")
                 lines.append("\(indent)# result = cq.Workplane().loft([profile1, profile2])")
+
+            case .assembly(let assembly):
+                lines.append("\(indent)# Assembly: \(assembly.name)")
+                lines.append("\(indent)# \(assembly.memberFeatureIDs.count) member features")
             }
         }
 

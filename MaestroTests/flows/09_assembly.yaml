@@ -1,0 +1,20 @@
+appId: com.openioscad.app
+---
+# Flow: Assembly (Multi-body)
+# Verifies assembly creation is available
+
+- launchApp
+
+# Open add menu
+- tapOn:
+    id: "toolbar_add_button"
+
+# Scroll to assembly section
+- scrollUntilVisible:
+    element:
+      id: "add_assembly"
+    direction: DOWN
+
+# Verify assembly button
+- assertVisible:
+    id: "add_assembly"

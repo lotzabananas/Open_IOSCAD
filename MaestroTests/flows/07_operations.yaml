@@ -1,0 +1,32 @@
+appId: com.openioscad.app
+---
+# Flow: Operations (Phase 3 features)
+# Verifies fillet, chamfer, shell, and pattern sections exist
+
+- launchApp
+
+# Add a box first (needed for operations)
+- tapOn:
+    id: "toolbar_add_button"
+- tapOn:
+    id: "add_box_section"
+- tapOn:
+    id: "add_box_confirm"
+
+# Open add menu again
+- tapOn:
+    id: "toolbar_add_button"
+
+# Verify operation sections exist
+- assertVisible:
+    id: "add_fillet_section"
+- assertVisible:
+    id: "add_chamfer_section"
+- assertVisible:
+    id: "add_shell_section"
+- assertVisible:
+    id: "add_linear_pattern_section"
+- assertVisible:
+    id: "add_circular_pattern"
+- assertVisible:
+    id: "add_mirror_pattern"

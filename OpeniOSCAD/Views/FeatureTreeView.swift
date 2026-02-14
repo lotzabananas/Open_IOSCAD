@@ -150,6 +150,7 @@ struct FeatureRow: View {
         case .pattern: return "square.grid.3x1.below.line.grid.1x2"
         case .sweep: return "point.topleft.down.to.point.bottomright.curvepath"
         case .loft: return "trapezoid.and.line.vertical"
+        case .assembly: return "square.3.layers.3d"
         }
     }
 }

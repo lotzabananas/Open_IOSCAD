@@ -1,0 +1,32 @@
+appId: com.openioscad.app
+---
+# Flow: Export Sheet
+# Verifies all export options are visible
+
+- launchApp
+
+# Add a box so there's geometry to export
+- tapOn:
+    id: "toolbar_add_button"
+- tapOn:
+    id: "add_box_section"
+- tapOn:
+    id: "add_box_confirm"
+
+# Open export sheet
+- tapOn:
+    id: "menu_export"
+
+# Verify all export options
+- assertVisible:
+    id: "menu_export_stl"
+- assertVisible:
+    id: "menu_export_3mf"
+- assertVisible:
+    id: "menu_export_scad"
+- assertVisible:
+    id: "menu_export_cadquery"
+- assertVisible:
+    id: "menu_export_dxf"
+- assertVisible:
+    id: "menu_export_pdf"

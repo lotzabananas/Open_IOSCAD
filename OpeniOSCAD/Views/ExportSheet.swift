@@ -27,6 +27,18 @@ struct ExportSheet: View {
                     Label("CadQuery (.py)", systemImage: "chevron.left.forwardslash.chevron.right")
                 }
                 .accessibilityIdentifier("menu_export_cadquery")
+
+                Section("2D Drawings") {
+                    Button(action: exportDXF) {
+                        Label("DXF (AutoCAD)", systemImage: "square.and.pencil")
+                    }
+                    .accessibilityIdentifier("menu_export_dxf")
+
+                    Button(action: exportPDF) {
+                        Label("PDF Drawing", systemImage: "doc.richtext")
+                    }
+                    .accessibilityIdentifier("menu_export_pdf")
+                }
             }
             .navigationTitle("Export")
             .navigationBarTitleDisplayMode(.inline)
@@ -56,6 +68,16 @@ struct ExportSheet: View {
     private func exportCadQuery() {
         guard let data = viewModel.exportCadQuery() else { return }
         shareData(data, filename: "model.py", contentType: .pythonScript)
+    }
+
+    private func exportDXF() {
+        guard let data = viewModel.exportDXF() else { return }
+        shareData(data, filename: "drawing.dxf", contentType: .data)
+    }
+
+    private func exportPDF() {
+        guard let data = viewModel.exportPDF() else { return }
+        shareData(data, filename: "drawing.pdf", contentType: .pdf)
     }
 
     private func shareData(_ data: Data, filename: String, contentType: UTType) {

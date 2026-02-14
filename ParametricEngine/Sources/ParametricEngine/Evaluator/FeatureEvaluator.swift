@@ -263,6 +263,11 @@ public final class FeatureEvaluator {
                 meshOperations[loft.id] = loft.operation == .additive ? .additive : .subtractive
                 featureOrder.append(loft.id)
 
+            case .assembly:
+                // Assembly features are organizational — they don't produce geometry
+                // directly. Member features are evaluated as normal features.
+                break
+
             case .pattern(let pattern):
                 guard let sourceMesh = featureMeshes[pattern.sourceID] else {
                     errors.append(.missingReference(

@@ -30,6 +30,7 @@ public enum FeatureKind: String, Codable, Sendable, CaseIterable {
     case pattern
     case sweep
     case loft
+    case assembly
 }
 
 /// Type-erased wrapper for Feature, enabling heterogeneous collections
@@ -46,6 +47,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
     case pattern(PatternFeature)
     case sweep(SweepFeature)
     case loft(LoftFeature)
+    case assembly(AssemblyFeature)
 
     public var id: FeatureID {
         switch self {
@@ -60,6 +62,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
         case .pattern(let f): return f.id
         case .sweep(let f): return f.id
         case .loft(let f): return f.id
+        case .assembly(let f): return f.id
         }
     }
 
@@ -77,6 +80,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .pattern(let f): return f.name
             case .sweep(let f): return f.name
             case .loft(let f): return f.name
+            case .assembly(let f): return f.name
             }
         }
         set {
@@ -92,6 +96,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .pattern(var f): f.name = newValue; self = .pattern(f)
             case .sweep(var f): f.name = newValue; self = .sweep(f)
             case .loft(var f): f.name = newValue; self = .loft(f)
+            case .assembly(var f): f.name = newValue; self = .assembly(f)
             }
         }
     }
@@ -110,6 +115,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .pattern(let f): return f.isSuppressed
             case .sweep(let f): return f.isSuppressed
             case .loft(let f): return f.isSuppressed
+            case .assembly(let f): return f.isSuppressed
             }
         }
         set {
@@ -125,6 +131,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .pattern(var f): f.isSuppressed = newValue; self = .pattern(f)
             case .sweep(var f): f.isSuppressed = newValue; self = .sweep(f)
             case .loft(var f): f.isSuppressed = newValue; self = .loft(f)
+            case .assembly(var f): f.isSuppressed = newValue; self = .assembly(f)
             }
         }
     }
@@ -142,6 +149,7 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
         case .pattern: return .pattern
         case .sweep: return .sweep
         case .loft: return .loft
+        case .assembly: return .assembly
         }
     }
 
@@ -177,6 +185,8 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             self = .sweep(try SweepFeature(from: decoder))
         case .loft:
             self = .loft(try LoftFeature(from: decoder))
+        case .assembly:
+            self = .assembly(try AssemblyFeature(from: decoder))
         }
     }
 
@@ -215,6 +225,9 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             try f.encode(to: encoder)
         case .loft(let f):
             try container.encode(FeatureKind.loft, forKey: .type)
+            try f.encode(to: encoder)
+        case .assembly(let f):
+            try container.encode(FeatureKind.assembly, forKey: .type)
             try f.encode(to: encoder)
         }
     }

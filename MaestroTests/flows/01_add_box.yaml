@@ -1,0 +1,40 @@
+appId: com.openioscad.app
+---
+# Flow: Add a Box primitive
+# Verifies the Add Shape sheet opens and a box can be created
+
+- launchApp
+
+# Open the Add Shape menu
+- tapOn:
+    id: "toolbar_add_button"
+
+# Verify the Add Shape sheet is shown
+- assertVisible:
+    id: "add_box_section"
+
+# Expand the Box section
+- tapOn:
+    id: "add_box_section"
+
+# Verify parameter fields are visible
+- assertVisible:
+    id: "box_width"
+- assertVisible:
+    id: "box_depth"
+- assertVisible:
+    id: "box_height"
+
+# Confirm adding the box
+- tapOn:
+    id: "add_box_confirm"
+
+# Verify the viewport is visible (sheet dismissed)
+- assertVisible:
+    id: "viewport_view"
+
+# Verify the feature tree shows the new feature
+- tapOn:
+    id: "toolbar_features_button"
+- assertVisible:
+    id: "feature_tree_item_0"

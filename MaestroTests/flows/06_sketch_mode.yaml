@@ -1,0 +1,22 @@
+appId: com.openioscad.app
+---
+# Flow: Enter sketch mode
+# Verifies sketch mode can be entered and cancelled
+
+- launchApp
+
+# Open add menu
+- tapOn:
+    id: "toolbar_add_button"
+
+# Start a new sketch on XY
+- tapOn:
+    id: "new_sketch_xy"
+
+# Verify sketch canvas is visible
+- assertVisible:
+    id: "sketch_canvas"
+- assertVisible:
+    id: "sketch_grid"
+- assertVisible:
+    id: "sketch_drawing_layer"

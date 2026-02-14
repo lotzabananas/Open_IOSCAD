@@ -72,6 +72,10 @@ struct PropertyInspectorView: View {
                         LoftInspector(loft: loft, onUpdate: { updated in
                             onUpdate(.loft(updated))
                         })
+                    case .assembly(let assembly):
+                        AssemblyInspector(assembly: assembly, onUpdate: { updated in
+                            onUpdate(.assembly(updated))
+                        })
                     }
                 }
                 .padding()
@@ -570,6 +574,56 @@ private struct LoftInspector: View {
             }
             .pickerStyle(.segmented)
             .accessibilityIdentifier("loft_operation_picker")
+        }
+    }
+}
+
+// MARK: - Assembly Inspector
+
+private struct AssemblyInspector: View {
+    let assembly: AssemblyFeature
+    let onUpdate: (AssemblyFeature) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Assembly (Body Group)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Text("\(assembly.memberFeatureIDs.count) members")
+                .font(.caption)
+                .accessibilityIdentifier("assembly_member_count")
+
+            NumericField("Pos X", value: assembly.positionX, identifier: "assembly_pos_x") { newVal in
+                var updated = assembly
+                updated.positionX = newVal
+                onUpdate(updated)
+            }
+            NumericField("Pos Y", value: assembly.positionY, identifier: "assembly_pos_y") { newVal in
+                var updated = assembly
+                updated.positionY = newVal
+                onUpdate(updated)
+            }
+            NumericField("Pos Z", value: assembly.positionZ, identifier: "assembly_pos_z") { newVal in
+                var updated = assembly
+                updated.positionZ = newVal
+                onUpdate(updated)
+            }
+            NumericField("Rot X", value: assembly.rotationX, identifier: "assembly_rot_x") { newVal in
+                var updated = assembly
+                updated.rotationX = newVal
+                onUpdate(updated)
+            }
+            NumericField("Rot Y", value: assembly.rotationY, identifier: "assembly_rot_y") { newVal in
+                var updated = assembly
+                updated.rotationY = newVal
+                onUpdate(updated)
+            }
+            NumericField("Rot Z", value: assembly.rotationZ, identifier: "assembly_rot_z") { newVal in
+                var updated = assembly
+                updated.rotationZ = newVal
+                onUpdate(updated)
+            }
         }
     }
 }

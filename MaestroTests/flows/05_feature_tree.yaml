@@ -1,0 +1,35 @@
+appId: com.openioscad.app
+---
+# Flow: Feature Tree interaction
+# Verifies feature tree displays items and allows selection
+
+- launchApp
+
+# Add two shapes
+- tapOn:
+    id: "toolbar_add_button"
+- tapOn:
+    id: "add_box_section"
+- tapOn:
+    id: "add_box_confirm"
+
+- tapOn:
+    id: "toolbar_add_button"
+- tapOn:
+    id: "add_cylinder_section"
+- tapOn:
+    id: "add_cylinder_confirm"
+
+# Verify feature tree has items
+- assertVisible:
+    id: "feature_tree_item_0"
+- assertVisible:
+    id: "feature_tree_item_1"
+
+# Select a feature (tap on it)
+- tapOn:
+    id: "feature_tree_item_1"
+
+# Property inspector should appear
+- assertVisible:
+    id: "property_inspector_dismiss"

@@ -107,6 +107,10 @@ public enum SCADExporter {
             case .loft:
                 lines.append("// Loft: not directly supported in OpenSCAD")
                 lines.append("// Use hull() or skin() from external libraries")
+
+            case .assembly(let assembly):
+                lines.append("// Assembly: \(assembly.name)")
+                lines.append("// Members: \(assembly.memberFeatureIDs.count) features")
             }
 
             lines.append("")

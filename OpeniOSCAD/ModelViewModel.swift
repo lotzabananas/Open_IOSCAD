@@ -45,6 +45,7 @@ final class ModelViewModel: ObservableObject {
     private var patternCounter = 0
     private var sweepCounter = 0
     private var loftCounter = 0
+    private var assemblyCounter = 0
 
     init() {
         pushUndoSnapshot()
@@ -98,6 +99,8 @@ final class ModelViewModel: ObservableObject {
         case .loft(let l):
             let opLabel = l.operation == .additive ? "Add" : "Cut"
             return "\(opLabel) \(l.profileSketchIDs.count) profiles"
+        case .assembly(let a):
+            return "\(a.memberFeatureIDs.count) members"
         }
     }
 
@@ -368,6 +371,22 @@ final class ModelViewModel: ObservableObject {
         reevaluate()
     }
 
+    // MARK: - Assembly
+
+    /// Create a new assembly (body group) containing the selected features.
+    func addAssembly(name: String? = nil, memberIDs: [FeatureID]? = nil) {
+        assemblyCounter += 1
+        let members = memberIDs ?? (selectedFeatureID.map { [$0] } ?? [])
+        let assembly = AssemblyFeature(
+            name: name ?? "Body \(assemblyCounter)",
+            memberFeatureIDs: members
+        )
+        featureTree.append(.assembly(assembly))
+        showAddMenu = false
+        pushUndoSnapshot()
+        reevaluate()
+    }
+
     // MARK: - AI Feature Generation
 
     /// Generate features from a natural language prompt using the built-in template engine.
@@ -578,6 +597,17 @@ final class ModelViewModel: ObservableObject {
         return cq.data(using: .utf8)
     }
 
+    func exportDXF() -> Data? {
+        guard !currentMesh.isEmpty else { return nil }
+        let dxf = DXFExporter.export(currentMesh)
+        return dxf.data(using: .utf8)
+    }
+
+    func exportPDF() -> Data? {
+        guard !currentMesh.isEmpty else { return nil }
+        return PDFDrawingExporter.export(currentMesh)
+    }
+
     // MARK: - STEP I/O
 
     func saveSTEP() throws -> Data {
@@ -624,6 +654,7 @@ final class ModelViewModel: ObservableObject {
         patternCounter = featureTree.features.filter { $0.kind == .pattern }.count
         sweepCounter = featureTree.features.filter { $0.kind == .sweep }.count
         loftCounter = featureTree.features.filter { $0.kind == .loft }.count
+        assemblyCounter = featureTree.features.filter { $0.kind == .assembly }.count
     }
 
     // MARK: - Face/Edge Selection

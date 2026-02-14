@@ -223,6 +223,16 @@ struct AddShapeSheet: View {
                     .accessibilityIdentifier("add_mirror_pattern")
                 }
 
+                Section("Assembly") {
+                    Button(action: {
+                        viewModel.addAssembly()
+                        dismiss()
+                    }) {
+                        Label("New Body Group", systemImage: "square.3.layers.3d")
+                    }
+                    .accessibilityIdentifier("add_assembly")
+                }
+
                 Section("AI Generate") {
                     VStack(alignment: .leading, spacing: 8) {
                         TextField("Describe what to create...", text: $aiPrompt)

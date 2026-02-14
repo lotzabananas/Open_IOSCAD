@@ -1,0 +1,30 @@
+appId: com.openioscad.app
+---
+# Flow: Undo and Redo
+# Verifies undo/redo buttons work after adding a shape
+
+- launchApp
+
+# Add a box first
+- tapOn:
+    id: "toolbar_add_button"
+- tapOn:
+    id: "add_box_section"
+- tapOn:
+    id: "add_box_confirm"
+
+# Verify undo is enabled
+- assertVisible:
+    id: "undo_button"
+
+# Tap undo
+- tapOn:
+    id: "undo_button"
+
+# Tap redo
+- tapOn:
+    id: "redo_button"
+
+# Viewport still visible
+- assertVisible:
+    id: "viewport_view"
