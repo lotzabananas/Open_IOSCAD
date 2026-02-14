@@ -144,6 +144,10 @@ struct FeatureRow: View {
         case .revolve: return "arrow.triangle.2.circlepath"
         case .boolean: return "square.on.square"
         case .transform: return "arrow.up.and.down.and.arrow.left.and.right"
+        case .fillet: return "circle.bottomhalf.filled"
+        case .chamfer: return "triangle"
+        case .shell: return "cube.transparent"
+        case .pattern: return "square.grid.3x1.below.line.grid.1x2"
         }
     }
 }

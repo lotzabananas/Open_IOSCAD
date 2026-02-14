@@ -150,6 +150,90 @@ public final class FeatureEvaluator {
                 featureMeshes[boolean.id] = result
                 meshOperations[boolean.id] = .additive
                 featureOrder.append(boolean.id)
+
+            case .fillet(let fillet):
+                guard let targetMesh = featureMeshes[fillet.targetID] else {
+                    errors.append(.missingReference(
+                        featureName: fillet.name,
+                        referencedID: fillet.targetID,
+                        detail: "Fillet target not found or has no geometry"
+                    ))
+                    continue
+                }
+                let filletedMesh = FilletOperation.apply(
+                    to: targetMesh,
+                    radius: Float(fillet.radius),
+                    edgeIndices: fillet.edgeIndices
+                )
+                featureMeshes[fillet.targetID] = filletedMesh
+
+            case .chamfer(let chamfer):
+                guard let targetMesh = featureMeshes[chamfer.targetID] else {
+                    errors.append(.missingReference(
+                        featureName: chamfer.name,
+                        referencedID: chamfer.targetID,
+                        detail: "Chamfer target not found or has no geometry"
+                    ))
+                    continue
+                }
+                let chamferedMesh = ChamferOperation.apply(
+                    to: targetMesh,
+                    distance: Float(chamfer.distance),
+                    edgeIndices: chamfer.edgeIndices
+                )
+                featureMeshes[chamfer.targetID] = chamferedMesh
+
+            case .shell(let shell):
+                guard let targetMesh = featureMeshes[shell.targetID] else {
+                    errors.append(.missingReference(
+                        featureName: shell.name,
+                        referencedID: shell.targetID,
+                        detail: "Shell target not found or has no geometry"
+                    ))
+                    continue
+                }
+                let shelledMesh = ShellOperation.apply(
+                    to: targetMesh,
+                    thickness: Float(shell.thickness),
+                    openFaceIndices: shell.openFaceIndices
+                )
+                featureMeshes[shell.targetID] = shelledMesh
+
+            case .pattern(let pattern):
+                guard let sourceMesh = featureMeshes[pattern.sourceID] else {
+                    errors.append(.missingReference(
+                        featureName: pattern.name,
+                        referencedID: pattern.sourceID,
+                        detail: "Pattern source not found or has no geometry"
+                    ))
+                    continue
+                }
+
+                let patternedMesh: TriangleMesh
+                switch pattern.patternType {
+                case .linear:
+                    patternedMesh = PatternOperation.linear(
+                        mesh: sourceMesh,
+                        direction: SIMD3<Float>(Float(pattern.directionX), Float(pattern.directionY), Float(pattern.directionZ)),
+                        count: pattern.count,
+                        spacing: Float(pattern.spacing)
+                    )
+                case .circular:
+                    patternedMesh = PatternOperation.circular(
+                        mesh: sourceMesh,
+                        axis: SIMD3<Float>(Float(pattern.axisX), Float(pattern.axisY), Float(pattern.axisZ)),
+                        count: pattern.count,
+                        totalAngle: Float(pattern.totalAngle),
+                        equalSpacing: pattern.equalSpacing
+                    )
+                case .mirror:
+                    patternedMesh = PatternOperation.mirror(
+                        mesh: sourceMesh,
+                        planeNormal: SIMD3<Float>(Float(pattern.directionX), Float(pattern.directionY), Float(pattern.directionZ))
+                    )
+                }
+
+                featureMeshes[pattern.sourceID] = patternedMesh
             }
         }
 

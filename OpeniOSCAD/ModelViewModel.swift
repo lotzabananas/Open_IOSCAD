@@ -39,6 +39,10 @@ final class ModelViewModel: ObservableObject {
     private var extrudeCounter = 0
     private var cutCounter = 0
     private var revolveCounter = 0
+    private var filletCounter = 0
+    private var chamferCounter = 0
+    private var shellCounter = 0
+    private var patternCounter = 0
 
     init() {
         pushUndoSnapshot()
@@ -74,6 +78,18 @@ final class ModelViewModel: ObservableObject {
             return b.booleanType.rawValue.capitalized
         case .transform(let t):
             return t.transformType.rawValue.capitalized
+        case .fillet(let f):
+            return "R\(String(format: "%.1f", f.radius))mm"
+        case .chamfer(let c):
+            return "\(String(format: "%.1f", c.distance))mm"
+        case .shell(let s):
+            return "\(String(format: "%.1f", s.thickness))mm wall"
+        case .pattern(let p):
+            switch p.patternType {
+            case .linear: return "Linear \(p.count)x"
+            case .circular: return "Circular \(p.count)x"
+            case .mirror: return "Mirror"
+            }
         }
     }
 
@@ -243,6 +259,115 @@ final class ModelViewModel: ObservableObject {
         showAddMenu = false
         pushUndoSnapshot()
         reevaluate()
+    }
+
+    // MARK: - Phase 3 Operations
+
+    /// Add a fillet to the last geometry-producing feature (or a selected one).
+    func addFillet(radius: Double = 2.0, targetID: FeatureID? = nil) {
+        guard let target = targetID ?? lastGeometryFeatureID() else { return }
+        filletCounter += 1
+        let fillet = FilletFeature(
+            name: "Fillet \(filletCounter)",
+            radius: radius,
+            targetID: target
+        )
+        featureTree.append(.fillet(fillet))
+        showAddMenu = false
+        pushUndoSnapshot()
+        reevaluate()
+    }
+
+    /// Add a chamfer to the last geometry-producing feature (or a selected one).
+    func addChamfer(distance: Double = 1.0, targetID: FeatureID? = nil) {
+        guard let target = targetID ?? lastGeometryFeatureID() else { return }
+        chamferCounter += 1
+        let chamfer = ChamferFeature(
+            name: "Chamfer \(chamferCounter)",
+            distance: distance,
+            targetID: target
+        )
+        featureTree.append(.chamfer(chamfer))
+        showAddMenu = false
+        pushUndoSnapshot()
+        reevaluate()
+    }
+
+    /// Shell the last geometry-producing feature (or a selected one).
+    func addShell(thickness: Double = 1.0, targetID: FeatureID? = nil) {
+        guard let target = targetID ?? lastGeometryFeatureID() else { return }
+        shellCounter += 1
+        let shell = ShellFeature(
+            name: "Shell \(shellCounter)",
+            thickness: thickness,
+            targetID: target
+        )
+        featureTree.append(.shell(shell))
+        showAddMenu = false
+        pushUndoSnapshot()
+        reevaluate()
+    }
+
+    /// Add a linear pattern.
+    func addLinearPattern(count: Int = 3, spacing: Double = 20.0, direction: SIMD3<Double> = SIMD3<Double>(1, 0, 0), sourceID: FeatureID? = nil) {
+        guard let source = sourceID ?? lastGeometryFeatureID() else { return }
+        patternCounter += 1
+        let pattern = PatternFeature(
+            name: "Pattern \(patternCounter)",
+            patternType: .linear,
+            sourceID: source,
+            direction: direction,
+            count: count,
+            spacing: spacing
+        )
+        featureTree.append(.pattern(pattern))
+        showAddMenu = false
+        pushUndoSnapshot()
+        reevaluate()
+    }
+
+    /// Add a circular pattern.
+    func addCircularPattern(count: Int = 4, totalAngle: Double = 360.0, axis: SIMD3<Double> = SIMD3<Double>(0, 0, 1), sourceID: FeatureID? = nil) {
+        guard let source = sourceID ?? lastGeometryFeatureID() else { return }
+        patternCounter += 1
+        let pattern = PatternFeature(
+            name: "Pattern \(patternCounter)",
+            patternType: .circular,
+            sourceID: source,
+            count: count,
+            axis: axis,
+            totalAngle: totalAngle
+        )
+        featureTree.append(.pattern(pattern))
+        showAddMenu = false
+        pushUndoSnapshot()
+        reevaluate()
+    }
+
+    /// Add a mirror pattern.
+    func addMirrorPattern(planeNormal: SIMD3<Double> = SIMD3<Double>(1, 0, 0), sourceID: FeatureID? = nil) {
+        guard let source = sourceID ?? lastGeometryFeatureID() else { return }
+        patternCounter += 1
+        let pattern = PatternFeature(
+            name: "Pattern \(patternCounter)",
+            patternType: .mirror,
+            sourceID: source,
+            direction: planeNormal
+        )
+        featureTree.append(.pattern(pattern))
+        showAddMenu = false
+        pushUndoSnapshot()
+        reevaluate()
+    }
+
+    /// Finds the last geometry-producing feature ID (extrude, revolve, or boolean).
+    private func lastGeometryFeatureID() -> FeatureID? {
+        featureTree.features.last(where: {
+            switch $0 {
+            case .extrude, .revolve, .boolean: return true
+            default: return false
+            }
+        })?.id
     }
 
     /// Add a sketch from sketch mode.
@@ -415,6 +540,16 @@ final class ModelViewModel: ObservableObject {
         return ThreeMFExporter.export(currentMesh)
     }
 
+    func exportSCAD() -> Data? {
+        let scad = SCADExporter.export(featureTree)
+        return scad.data(using: .utf8)
+    }
+
+    func exportCadQuery() -> Data? {
+        let cq = CadQueryExporter.export(featureTree)
+        return cq.data(using: .utf8)
+    }
+
     // MARK: - STEP I/O
 
     func saveSTEP() throws -> Data {
@@ -455,6 +590,10 @@ final class ModelViewModel: ObservableObject {
             return false
         }.count
         revolveCounter = featureTree.features.filter { $0.kind == .revolve }.count
+        filletCounter = featureTree.features.filter { $0.kind == .fillet }.count
+        chamferCounter = featureTree.features.filter { $0.kind == .chamfer }.count
+        shellCounter = featureTree.features.filter { $0.kind == .shell }.count
+        patternCounter = featureTree.features.filter { $0.kind == .pattern }.count
     }
 
     // MARK: - Face/Edge Selection

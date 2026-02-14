@@ -17,6 +17,13 @@ struct AddShapeSheet: View {
     @State private var holeRadius: Double = 5
     @State private var holeDepth: Double = 100
 
+    // Phase 3 parameters
+    @State private var filletRadius: Double = 2.0
+    @State private var chamferDistance: Double = 1.0
+    @State private var shellThickness: Double = 1.0
+    @State private var patternCount: Double = 3
+    @State private var patternSpacing: Double = 20.0
+
     @State private var expandedSection: String?
 
     var body: some View {
@@ -117,6 +124,99 @@ struct AddShapeSheet: View {
                         Label("Hole", systemImage: "circle.dashed")
                     }
                     .accessibilityIdentifier("add_hole_section")
+                }
+
+                Section("Operations") {
+                    // Fillet
+                    DisclosureGroup(
+                        isExpanded: Binding(
+                            get: { expandedSection == "fillet" },
+                            set: { expandedSection = $0 ? "fillet" : nil }
+                        )
+                    ) {
+                        paramField("Radius", value: $filletRadius, identifier: "fillet_add_radius")
+                        Button("Add Fillet") {
+                            viewModel.addFillet(radius: filletRadius)
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("add_fillet_confirm")
+                    } label: {
+                        Label("Fillet", systemImage: "circle.bottomhalf.filled")
+                    }
+                    .accessibilityIdentifier("add_fillet_section")
+
+                    // Chamfer
+                    DisclosureGroup(
+                        isExpanded: Binding(
+                            get: { expandedSection == "chamfer" },
+                            set: { expandedSection = $0 ? "chamfer" : nil }
+                        )
+                    ) {
+                        paramField("Distance", value: $chamferDistance, identifier: "chamfer_add_distance")
+                        Button("Add Chamfer") {
+                            viewModel.addChamfer(distance: chamferDistance)
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("add_chamfer_confirm")
+                    } label: {
+                        Label("Chamfer", systemImage: "triangle")
+                    }
+                    .accessibilityIdentifier("add_chamfer_section")
+
+                    // Shell
+                    DisclosureGroup(
+                        isExpanded: Binding(
+                            get: { expandedSection == "shell" },
+                            set: { expandedSection = $0 ? "shell" : nil }
+                        )
+                    ) {
+                        paramField("Thickness", value: $shellThickness, identifier: "shell_add_thickness")
+                        Button("Add Shell") {
+                            viewModel.addShell(thickness: shellThickness)
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("add_shell_confirm")
+                    } label: {
+                        Label("Shell", systemImage: "cube.transparent")
+                    }
+                    .accessibilityIdentifier("add_shell_section")
+
+                    // Linear Pattern
+                    DisclosureGroup(
+                        isExpanded: Binding(
+                            get: { expandedSection == "linear_pattern" },
+                            set: { expandedSection = $0 ? "linear_pattern" : nil }
+                        )
+                    ) {
+                        paramField("Count", value: $patternCount, identifier: "pattern_add_count")
+                        paramField("Spacing", value: $patternSpacing, identifier: "pattern_add_spacing")
+                        Button("Add Linear Pattern") {
+                            viewModel.addLinearPattern(count: Int(patternCount), spacing: patternSpacing)
+                            dismiss()
+                        }
+                        .accessibilityIdentifier("add_linear_pattern_confirm")
+                    } label: {
+                        Label("Linear Pattern", systemImage: "square.grid.3x1.below.line.grid.1x2")
+                    }
+                    .accessibilityIdentifier("add_linear_pattern_section")
+
+                    // Circular Pattern
+                    Button(action: {
+                        viewModel.addCircularPattern()
+                        dismiss()
+                    }) {
+                        Label("Circular Pattern", systemImage: "circle.grid.2x2")
+                    }
+                    .accessibilityIdentifier("add_circular_pattern")
+
+                    // Mirror
+                    Button(action: {
+                        viewModel.addMirrorPattern()
+                        dismiss()
+                    }) {
+                        Label("Mirror", systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right")
+                    }
+                    .accessibilityIdentifier("add_mirror_pattern")
                 }
 
                 Section("Sketch") {

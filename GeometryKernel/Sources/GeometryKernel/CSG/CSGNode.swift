@@ -42,6 +42,22 @@ public enum CSGOperations {
             }
         }
 
+        // Handle containment fast-paths for intersection
+        if type == .intersection {
+            let aContainsB = bbA.min.x <= bbB.min.x && bbA.min.y <= bbB.min.y && bbA.min.z <= bbB.min.z &&
+                             bbA.max.x >= bbB.max.x && bbA.max.y >= bbB.max.y && bbA.max.z >= bbB.max.z
+            let bContainsA = bbB.min.x <= bbA.min.x && bbB.min.y <= bbA.min.y && bbB.min.z <= bbA.min.z &&
+                             bbB.max.x >= bbA.max.x && bbB.max.y >= bbA.max.y && bbB.max.z >= bbA.max.z
+            // If bounding boxes are nearly identical, meshes likely overlap completely
+            let bbMatch = simd_length(bbA.min - bbB.min) < 0.01 && simd_length(bbA.max - bbB.max) < 0.01
+            if bbMatch {
+                return a
+            }
+            // If one fully contains the other by bounding box, return the smaller
+            if aContainsB { return b }
+            if bContainsA { return a }
+        }
+
         return bspBoolean(type, a: a, b: b)
     }
 

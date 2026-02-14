@@ -24,6 +24,10 @@ public enum FeatureKind: String, Codable, Sendable, CaseIterable {
     case revolve
     case boolean
     case transform
+    case fillet
+    case chamfer
+    case shell
+    case pattern
 }
 
 /// Type-erased wrapper for Feature, enabling heterogeneous collections
@@ -34,6 +38,10 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
     case revolve(RevolveFeature)
     case boolean(BooleanFeature)
     case transform(TransformFeature)
+    case fillet(FilletFeature)
+    case chamfer(ChamferFeature)
+    case shell(ShellFeature)
+    case pattern(PatternFeature)
 
     public var id: FeatureID {
         switch self {
@@ -42,6 +50,10 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
         case .revolve(let f): return f.id
         case .boolean(let f): return f.id
         case .transform(let f): return f.id
+        case .fillet(let f): return f.id
+        case .chamfer(let f): return f.id
+        case .shell(let f): return f.id
+        case .pattern(let f): return f.id
         }
     }
 
@@ -53,6 +65,10 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .revolve(let f): return f.name
             case .boolean(let f): return f.name
             case .transform(let f): return f.name
+            case .fillet(let f): return f.name
+            case .chamfer(let f): return f.name
+            case .shell(let f): return f.name
+            case .pattern(let f): return f.name
             }
         }
         set {
@@ -62,6 +78,10 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .revolve(var f): f.name = newValue; self = .revolve(f)
             case .boolean(var f): f.name = newValue; self = .boolean(f)
             case .transform(var f): f.name = newValue; self = .transform(f)
+            case .fillet(var f): f.name = newValue; self = .fillet(f)
+            case .chamfer(var f): f.name = newValue; self = .chamfer(f)
+            case .shell(var f): f.name = newValue; self = .shell(f)
+            case .pattern(var f): f.name = newValue; self = .pattern(f)
             }
         }
     }
@@ -74,6 +94,10 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .revolve(let f): return f.isSuppressed
             case .boolean(let f): return f.isSuppressed
             case .transform(let f): return f.isSuppressed
+            case .fillet(let f): return f.isSuppressed
+            case .chamfer(let f): return f.isSuppressed
+            case .shell(let f): return f.isSuppressed
+            case .pattern(let f): return f.isSuppressed
             }
         }
         set {
@@ -83,6 +107,10 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             case .revolve(var f): f.isSuppressed = newValue; self = .revolve(f)
             case .boolean(var f): f.isSuppressed = newValue; self = .boolean(f)
             case .transform(var f): f.isSuppressed = newValue; self = .transform(f)
+            case .fillet(var f): f.isSuppressed = newValue; self = .fillet(f)
+            case .chamfer(var f): f.isSuppressed = newValue; self = .chamfer(f)
+            case .shell(var f): f.isSuppressed = newValue; self = .shell(f)
+            case .pattern(var f): f.isSuppressed = newValue; self = .pattern(f)
             }
         }
     }
@@ -94,6 +122,10 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
         case .revolve: return .revolve
         case .boolean: return .boolean
         case .transform: return .transform
+        case .fillet: return .fillet
+        case .chamfer: return .chamfer
+        case .shell: return .shell
+        case .pattern: return .pattern
         }
     }
 
@@ -117,6 +149,14 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             self = .boolean(try BooleanFeature(from: decoder))
         case .transform:
             self = .transform(try TransformFeature(from: decoder))
+        case .fillet:
+            self = .fillet(try FilletFeature(from: decoder))
+        case .chamfer:
+            self = .chamfer(try ChamferFeature(from: decoder))
+        case .shell:
+            self = .shell(try ShellFeature(from: decoder))
+        case .pattern:
+            self = .pattern(try PatternFeature(from: decoder))
         }
     }
 
@@ -137,6 +177,18 @@ public enum AnyFeature: Codable, Sendable, Identifiable {
             try f.encode(to: encoder)
         case .transform(let f):
             try container.encode(FeatureKind.transform, forKey: .type)
+            try f.encode(to: encoder)
+        case .fillet(let f):
+            try container.encode(FeatureKind.fillet, forKey: .type)
+            try f.encode(to: encoder)
+        case .chamfer(let f):
+            try container.encode(FeatureKind.chamfer, forKey: .type)
+            try f.encode(to: encoder)
+        case .shell(let f):
+            try container.encode(FeatureKind.shell, forKey: .type)
+            try f.encode(to: encoder)
+        case .pattern(let f):
+            try container.encode(FeatureKind.pattern, forKey: .type)
             try f.encode(to: encoder)
         }
     }

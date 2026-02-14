@@ -48,6 +48,22 @@ struct PropertyInspectorView: View {
                         TransformInspector(transform: transform, onUpdate: { updated in
                             onUpdate(.transform(updated))
                         })
+                    case .fillet(let fillet):
+                        FilletInspector(fillet: fillet, onUpdate: { updated in
+                            onUpdate(.fillet(updated))
+                        })
+                    case .chamfer(let chamfer):
+                        ChamferInspector(chamfer: chamfer, onUpdate: { updated in
+                            onUpdate(.chamfer(updated))
+                        })
+                    case .shell(let shell):
+                        ShellInspector(shell: shell, onUpdate: { updated in
+                            onUpdate(.shell(updated))
+                        })
+                    case .pattern(let pattern):
+                        PatternInspector(pattern: pattern, onUpdate: { updated in
+                            onUpdate(.pattern(updated))
+                        })
                     }
                 }
                 .padding()
@@ -337,6 +353,134 @@ private struct TransformInspector: View {
                 NumericField("Angle", value: transform.angle, identifier: "transform_angle") { newVal in
                     var updated = transform
                     updated.angle = newVal
+                    onUpdate(updated)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Fillet Inspector
+
+private struct FilletInspector: View {
+    let fillet: FilletFeature
+    let onUpdate: (FilletFeature) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Fillet (Round Edges)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            NumericField("Radius", value: fillet.radius, identifier: "fillet_radius") { newVal in
+                var updated = fillet
+                updated.radius = max(0.1, newVal)
+                onUpdate(updated)
+            }
+        }
+    }
+}
+
+// MARK: - Chamfer Inspector
+
+private struct ChamferInspector: View {
+    let chamfer: ChamferFeature
+    let onUpdate: (ChamferFeature) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Chamfer (Bevel Edges)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            NumericField("Distance", value: chamfer.distance, identifier: "chamfer_distance") { newVal in
+                var updated = chamfer
+                updated.distance = max(0.1, newVal)
+                onUpdate(updated)
+            }
+        }
+    }
+}
+
+// MARK: - Shell Inspector
+
+private struct ShellInspector: View {
+    let shell: ShellFeature
+    let onUpdate: (ShellFeature) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Shell (Hollow)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            NumericField("Thickness", value: shell.thickness, identifier: "shell_thickness") { newVal in
+                var updated = shell
+                updated.thickness = max(0.1, newVal)
+                onUpdate(updated)
+            }
+        }
+    }
+}
+
+// MARK: - Pattern Inspector
+
+private struct PatternInspector: View {
+    let pattern: PatternFeature
+    let onUpdate: (PatternFeature) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Type", selection: Binding(
+                get: { pattern.patternType },
+                set: { newType in
+                    var updated = pattern
+                    updated.patternType = newType
+                    onUpdate(updated)
+                }
+            )) {
+                Text("Linear").tag(PatternFeature.PatternKind.linear)
+                Text("Circular").tag(PatternFeature.PatternKind.circular)
+                Text("Mirror").tag(PatternFeature.PatternKind.mirror)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("pattern_type_picker")
+
+            if pattern.patternType != .mirror {
+                NumericField("Count", value: Double(pattern.count), identifier: "pattern_count") { newVal in
+                    var updated = pattern
+                    updated.count = max(1, Int(newVal))
+                    onUpdate(updated)
+                }
+            }
+
+            if pattern.patternType == .linear {
+                NumericField("Spacing", value: pattern.spacing, identifier: "pattern_spacing") { newVal in
+                    var updated = pattern
+                    updated.spacing = max(0.1, newVal)
+                    onUpdate(updated)
+                }
+                NumericField("Dir X", value: pattern.directionX, identifier: "pattern_dir_x") { newVal in
+                    var updated = pattern
+                    updated.directionX = newVal
+                    onUpdate(updated)
+                }
+                NumericField("Dir Y", value: pattern.directionY, identifier: "pattern_dir_y") { newVal in
+                    var updated = pattern
+                    updated.directionY = newVal
+                    onUpdate(updated)
+                }
+                NumericField("Dir Z", value: pattern.directionZ, identifier: "pattern_dir_z") { newVal in
+                    var updated = pattern
+                    updated.directionZ = newVal
+                    onUpdate(updated)
+                }
+            }
+
+            if pattern.patternType == .circular {
+                NumericField("Angle", value: pattern.totalAngle, identifier: "pattern_total_angle") { newVal in
+                    var updated = pattern
+                    updated.totalAngle = max(1, min(360, newVal))
                     onUpdate(updated)
                 }
             }
